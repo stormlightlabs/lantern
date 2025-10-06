@@ -4,13 +4,13 @@
 
 __Objective:__ Establish a clean, testable core with `clap` and a minimal `ratatui` loop.
 
-| Task                       | Description                                                                                                                                          | Key Crates                                                               |
-| -------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------ |
-| __Project Scaffolding__    | Initialize workspace with `slides-core`, `slides-cli`, and `slides-tui` crates. Use `cargo-generate` and a `justfile` for scripts.                   | `cargo`, `just`, `clap`                                                  |
-| __CLI Definition__         | Implement root command `slides` with subcommands:<br>• `present` (TUI)<br>• `print` (stdout)<br>• `init` (scaffold deck)<br>• `check` (lint slides). | [`clap`](https://docs.rs/clap/latest/clap/)                              |
-| __Logging and Colors__     | Integrate structured logs via `tracing`.<br>Use __owo-colors__ for color abstraction (no dynamic dispatch).                                          | [`owo-colors`](https://docs.rs/owo-colors/latest/owo_colors/), `tracing` |
-| __Terminal & Event Setup__ | Configure alternate screen, raw mode, input loop, resize handler.                                                                                    | [`crossterm`](https://docs.rs/crossterm/latest/crossterm/), `ratatui`    |
-| __CI/CD + Tooling__        | Setup `cargo fmt`, `clippy`, `test`, and `cross` matrix CI.                                                                                          | GitHub Actions                                                           |
+| Task                         | Description                                                                                                                                          | Key Crates                                                               |
+| ---------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------ |
+| __✓ Project Scaffolding__    | Initialize workspace with `slides-core`, `slides-cli`, and `slides-ui` crates. Use `cargo-generate` and a `justfile` for scripts.                    | `cargo`, `just`, `clap`                                                  |
+| __✓ CLI Definition__         | Implement root command `slides` with subcommands:<br>• `present` (TUI)<br>• `print` (stdout)<br>• `init` (scaffold deck)<br>• `check` (lint slides). | [`clap`](https://docs.rs/clap/latest/clap/)                              |
+| __✓ Logging & Colors__       | Integrate structured logs via `tracing`.<br>Use __owo-colors__ for color abstraction (no dynamic dispatch).                                          | [`owo-colors`](https://docs.rs/owo-colors/latest/owo_colors/), `tracing` |
+| __✓ Terminal & Event Setup__ | Configure alternate screen, raw mode, input loop, resize handler.                                                                                    | [`crossterm`](https://docs.rs/crossterm/latest/crossterm/), `ratatui`    |
+| __CI/CD + Tooling__          | Setup `cargo fmt`, `clippy`, `test`, and `cross` matrix CI.                                                                                          | GitHub Actions                                                           |
 
 ## Data Model (Parser & Slides)
 

@@ -4,3 +4,6 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
+tracing = "0.1.41"
+owo-colors = "4.2.3"
+crossterm = "0.29.0"
