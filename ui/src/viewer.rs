@@ -6,6 +6,7 @@ use ratatui::{
     widgets::{Block, Borders, Paragraph, Wrap},
 };
 use slides_core::{slide::Slide, theme::ThemeColors};
+use std::time::Instant;
 
 use crate::renderer::render_slide_content;
 
@@ -17,12 +18,31 @@ pub struct SlideViewer {
     current_index: usize,
     show_notes: bool,
     theme: ThemeColors,
+    filename: Option<String>,
+    theme_name: String,
+    start_time: Option<Instant>,
 }
 
 impl SlideViewer {
     /// Create a new slide viewer with slides and theme
     pub fn new(slides: Vec<Slide>, theme: ThemeColors) -> Self {
-        Self { slides, current_index: 0, show_notes: false, theme }
+        Self {
+            slides,
+            current_index: 0,
+            show_notes: false,
+            theme,
+            filename: None,
+            theme_name: "default".to_string(),
+            start_time: None,
+        }
+    }
+
+    /// Create a slide viewer with full presentation context
+    pub fn with_context(
+        slides: Vec<Slide>, theme: ThemeColors, filename: Option<String>, theme_name: String,
+        start_time: Option<Instant>,
+    ) -> Self {
+        Self { slides, current_index: 0, show_notes: false, theme, filename, theme_name, start_time }
     }
 
     /// Navigate to the next slide
@@ -114,11 +134,28 @@ impl SlideViewer {
 
     /// Render status bar with navigation info
     pub fn render_status_bar(&self, frame: &mut Frame, area: Rect) {
+        let filename_part = self.filename.as_ref().map(|f| format!("{} | ", f)).unwrap_or_default();
+
+        let elapsed = self
+            .start_time
+            .map(|start| {
+                let duration = start.elapsed();
+                let secs = duration.as_secs();
+                let hours = secs / 3600;
+                let minutes = (secs % 3600) / 60;
+                let seconds = secs % 60;
+                format!(" | {:02}:{:02}:{:02}", hours, minutes, seconds)
+            })
+            .unwrap_or_default();
+
         let status_text = format!(
-            " {}/{} | [←/→] Navigate | [N] Notes {} | [Q] Quit ",
+            " {}{}/{} | Theme: {} | [←/→] Navigate | [N] Notes {} | [Q] Quit{} ",
+            filename_part,
             self.current_index + 1,
             self.total_slides(),
-            if self.show_notes { "✓" } else { "" }
+            self.theme_name,
+            if self.show_notes { "✓" } else { "" },
+            elapsed
         );
 
         let status = Paragraph::new(Line::from(vec![Span::styled(
@@ -242,5 +279,42 @@ mod tests {
         let viewer = SlideViewer::new(Vec::new(), ThemeColors::default());
         assert_eq!(viewer.total_slides(), 0);
         assert!(viewer.current_slide().is_none());
+    }
+
+    #[test]
+    fn viewer_with_context() {
+        let slides = create_test_slides();
+        let start_time = Instant::now();
+        let viewer = SlideViewer::with_context(
+            slides,
+            ThemeColors::default(),
+            Some("presentation.md".to_string()),
+            "dark".to_string(),
+            Some(start_time),
+        );
+
+        assert_eq!(viewer.filename, Some("presentation.md".to_string()));
+        assert_eq!(viewer.theme_name, "dark");
+        assert!(viewer.start_time.is_some());
+    }
+
+    #[test]
+    fn viewer_with_context_none_values() {
+        let slides = create_test_slides();
+        let viewer = SlideViewer::with_context(slides, ThemeColors::default(), None, "default".to_string(), None);
+
+        assert_eq!(viewer.filename, None);
+        assert_eq!(viewer.theme_name, "default");
+        assert_eq!(viewer.start_time, None);
+    }
+
+    #[test]
+    fn viewer_default_constructor() {
+        let slides = create_test_slides();
+        let viewer = SlideViewer::new(slides, ThemeColors::default());
+
+        assert_eq!(viewer.filename, None);
+        assert_eq!(viewer.theme_name, "default");
+        assert_eq!(viewer.start_time, None);
     }
 }

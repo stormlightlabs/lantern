@@ -1,5 +1,8 @@
 use clap::{Parser, Subcommand};
-use std::path::PathBuf;
+use ratatui::{Terminal, backend::CrosstermBackend};
+use slides_core::{parser::parse_slides_with_meta, term::Terminal as SlideTerminal, theme::ThemeColors};
+use slides_tui::App;
+use std::{io, path::PathBuf};
 use tracing::Level;
 
 /// A modern terminal-based presentation tool
@@ -70,11 +73,10 @@ fn main() {
 
     match cli.command {
         Commands::Present { file, theme } => {
-            tracing::info!("Presenting slides from: {}", file.display());
-            if let Some(theme) = theme {
-                tracing::debug!("Using theme: {}", theme);
+            if let Err(e) = run_present(&file, theme) {
+                eprintln!("Error: {}", e);
+                std::process::exit(1);
             }
-            eprintln!("TUI presentation mode not yet implemented");
         }
 
         Commands::Print { file, width, theme } => {
@@ -98,6 +100,50 @@ fn main() {
             eprintln!("Check command not yet implemented");
         }
     }
+}
+
+fn run_present(file: &PathBuf, theme_arg: Option<String>) -> io::Result<()> {
+    tracing::info!("Presenting slides from: {}", file.display());
+
+    let markdown = std::fs::read_to_string(file)
+        .map_err(|e| io::Error::new(e.kind(), format!("Failed to read file {}: {}", file.display(), e)))?;
+
+    let (meta, slides) = parse_slides_with_meta(&markdown)
+        .map_err(|e| io::Error::new(io::ErrorKind::InvalidData, format!("Parse error: {}", e)))?;
+
+    if slides.is_empty() {
+        return Err(io::Error::new(io::ErrorKind::InvalidData, "No slides found in file"));
+    }
+
+    let theme_name = theme_arg.unwrap_or_else(|| meta.theme.clone());
+    tracing::debug!("Using theme: {}", theme_name);
+
+    let theme = ThemeColors::default();
+
+    let filename = file
+        .file_name()
+        .and_then(|n| n.to_str())
+        .unwrap_or("unknown")
+        .to_string();
+
+    let mut slide_terminal = SlideTerminal::setup()?;
+
+    let result = (|| -> io::Result<()> {
+        let stdout = io::stdout();
+        let backend = CrosstermBackend::new(stdout);
+        let mut terminal = Terminal::new(backend)?;
+
+        terminal.clear()?;
+
+        let mut app = App::new(slides, theme, filename, meta);
+        app.run(&mut terminal)?;
+
+        Ok(())
+    })();
+
+    slide_terminal.restore()?;
+
+    result
 }
 
 #[cfg(test)]

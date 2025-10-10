@@ -10,3 +10,5 @@ owo-colors = "4.2.3"
 ratatui = "0.29.0"
 tracing = "0.1.41"
 tracing-subscriber = "0.3.20"
+slides-core = { path = "../core" }
+slides-tui = { path = "../ui" }

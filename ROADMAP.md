@@ -70,7 +70,7 @@ __Objective:__ Introduce features for live presentations and authoring convenien
 | __Speaker Notes__    | `n` toggles speaker notes (parsed via `::: notes`).           | `ratatui`                        |
 | __Timer & Progress__ | Session timer + per-slide progress bar.                       | `ratatui`, `chrono`              |
 | __Live Reload__      | File watcher auto-refreshes content.                          | `notify`[^9]                     |
-| __Search__.          | Fuzzy find slide titles via `ctrl+f`.                         | `fuzzy-matcher`[^10]             |
+| __Search__           | Fuzzy find slide titles via `ctrl+f`.                         | `fuzzy-matcher`[^10]             |
 | __Theme Commands__   | CLI flag `--theme <name>` switches both Syntect + owo themes. | `clap`, internal `ThemeRegistry` |
 
 ## Markdown Extension

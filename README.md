@@ -36,5 +36,8 @@ cargo +stable install cargo-llvm-cov --locked
 Run tests:
 
 ```sh
+cargo llvm-cov
+
+# Open the browser
 cargo llvm-cov --open
 ```
