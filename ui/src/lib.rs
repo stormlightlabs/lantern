@@ -1,14 +1,12 @@
-pub fn add(left: u64, right: u64) -> u64 {
-    left + right
-}
+pub mod layout;
+pub mod renderer;
+pub mod viewer;
 
-#[cfg(test)]
-mod tests {
-    use super::*;
+pub use layout::SlideLayout;
+pub use renderer::render_slide_content;
+pub use viewer::SlideViewer;
 
-    #[test]
-    fn it_works() {
-        let result = add(2, 2);
-        assert_eq!(result, 4);
-    }
-}
+pub use slides_core::{
+    slide::{Block, Slide, TextSpan},
+    theme::ThemeColors,
+};

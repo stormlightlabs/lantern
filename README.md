@@ -18,3 +18,23 @@ Parser → Model → Renderer are independent modules with tests and traits.
 
 __Portable:__
 Runs on any terminal supporting UTF-8; dependencies limited to core crates.
+
+## Testing
+
+This project uses `cargo-llvm-cov` for coverage
+
+Installation:
+
+```sh
+# MacOS
+brew install cargo-llvm-cov
+
+# Linux
+cargo +stable install cargo-llvm-cov --locked
+```
+
+Run tests:
+
+```sh
+cargo llvm-cov --open
+```

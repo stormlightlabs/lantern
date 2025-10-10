@@ -11,10 +11,7 @@ pub struct Slide {
 
 impl Slide {
     pub fn new() -> Self {
-        Self {
-            blocks: Vec::new(),
-            notes: None,
-        }
+        Self { blocks: Vec::new(), notes: None }
     }
 
     pub fn with_blocks(blocks: Vec<Block>) -> Self {
@@ -60,40 +57,19 @@ pub struct TextSpan {
 
 impl TextSpan {
     pub fn plain(text: impl Into<String>) -> Self {
-        Self {
-            text: text.into(),
-            style: TextStyle::default(),
-        }
+        Self { text: text.into(), style: TextStyle::default() }
     }
 
     pub fn bold(text: impl Into<String>) -> Self {
-        Self {
-            text: text.into(),
-            style: TextStyle {
-                bold: true,
-                ..Default::default()
-            },
-        }
+        Self { text: text.into(), style: TextStyle { bold: true, ..Default::default() } }
     }
 
     pub fn italic(text: impl Into<String>) -> Self {
-        Self {
-            text: text.into(),
-            style: TextStyle {
-                italic: true,
-                ..Default::default()
-            },
-        }
+        Self { text: text.into(), style: TextStyle { italic: true, ..Default::default() } }
     }
 
     pub fn code(text: impl Into<String>) -> Self {
-        Self {
-            text: text.into(),
-            style: TextStyle {
-                code: true,
-                ..Default::default()
-            },
-        }
+        Self { text: text.into(), style: TextStyle { code: true, ..Default::default() } }
     }
 }
 
@@ -117,17 +93,11 @@ pub struct CodeBlock {
 
 impl CodeBlock {
     pub fn new(code: impl Into<String>) -> Self {
-        Self {
-            language: None,
-            code: code.into(),
-        }
+        Self { language: None, code: code.into() }
     }
 
     pub fn with_language(language: impl Into<String>, code: impl Into<String>) -> Self {
-        Self {
-            language: Some(language.into()),
-            code: code.into(),
-        }
+        Self { language: Some(language.into()), code: code.into() }
     }
 }
 
@@ -173,9 +143,7 @@ mod tests {
 
     #[test]
     fn slide_with_blocks() {
-        let blocks = vec![Block::Paragraph {
-            spans: vec![TextSpan::plain("Hello")],
-        }];
+        let blocks = vec![Block::Paragraph { spans: vec![TextSpan::plain("Hello")] }];
         let slide = Slide::with_blocks(blocks.clone());
         assert!(!slide.is_empty());
         assert_eq!(slide.blocks.len(), 1);

@@ -10,6 +10,11 @@ pub struct ThemeColors {
     pub accent: Style,
     pub code: Style,
     pub dimmed: Style,
+    pub code_fence: Style,
+    pub rule: Style,
+    pub list_marker: Style,
+    pub blockquote_border: Style,
+    pub table_border: Style,
 }
 
 impl Default for ThemeColors {
@@ -20,6 +25,11 @@ impl Default for ThemeColors {
             accent: Style::new().bright_yellow(),
             code: Style::new().bright_green(),
             dimmed: Style::new().dimmed(),
+            code_fence: Style::new().on_black().dimmed(),
+            rule: Style::new().on_black().dimmed(),
+            list_marker: Style::new().bright_yellow(),
+            blockquote_border: Style::new().on_black().dimmed(),
+            table_border: Style::new().on_black().dimmed(),
         }
     }
 }
@@ -48,6 +58,31 @@ impl ThemeColors {
     /// Apply dimmed style to text
     pub fn dimmed<'a, T: OwoColorize>(&self, text: &'a T) -> owo_colors::Styled<&'a T> {
         text.style(self.dimmed)
+    }
+
+    /// Apply code fence style to text
+    pub fn code_fence<'a, T: OwoColorize>(&self, text: &'a T) -> owo_colors::Styled<&'a T> {
+        text.style(self.code_fence)
+    }
+
+    /// Apply horizontal rule style to text
+    pub fn rule<'a, T: OwoColorize>(&self, text: &'a T) -> owo_colors::Styled<&'a T> {
+        text.style(self.rule)
+    }
+
+    /// Apply list marker style to text
+    pub fn list_marker<'a, T: OwoColorize>(&self, text: &'a T) -> owo_colors::Styled<&'a T> {
+        text.style(self.list_marker)
+    }
+
+    /// Apply blockquote border style to text
+    pub fn blockquote_border<'a, T: OwoColorize>(&self, text: &'a T) -> owo_colors::Styled<&'a T> {
+        text.style(self.blockquote_border)
+    }
+
+    /// Apply table border style to text
+    pub fn table_border<'a, T: OwoColorize>(&self, text: &'a T) -> owo_colors::Styled<&'a T> {
+        text.style(self.table_border)
     }
 }
 
