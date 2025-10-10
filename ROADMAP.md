@@ -18,9 +18,9 @@ __Objective:__ Parse markdown documents into a rich `Slide` struct.
 
 | Task                   | Description                                                                                                    | Key Crates                                                                |
 | ---------------------- | -------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------- |
-| __Parser Core__        | Split files on `---` separators.<br>Detect title blocks, lists, and code fences.<br>Represent as `Vec<Slide>`. | [`pulldown-cmark`](https://docs.rs/pulldown-cmark/latest/pulldown_cmark/) |
-| __Slide Model__        | Define structs: `Slide`, `Block`, `TextSpan`, `CodeBlock`, etc.                                                | Internal                                                                  |
-| __Metadata Parsing__   | Optional front matter (YAML/TOML) for theme, author, etc.                                                      | [`serde_yaml`](https://docs.rs/serde_yaml)                                |
+| __✓ Parser Core__      | Split files on `---` separators.<br>Detect title blocks, lists, and code fences.<br>Represent as `Vec<Slide>`. | [`pulldown-cmark`](https://docs.rs/pulldown-cmark/latest/pulldown_cmark/) |
+| __✓ Slide Model__      | Define structs: `Slide`, `Block`, `TextSpan`, `CodeBlock`, etc.                                                | Internal                                                                  |
+| __✓ Metadata Parsing__ | Optional front matter (YAML/TOML) for theme, author, etc.                                                      | [`serde_yml`](https://docs.rs/serde_yml)                                  |
 | __Error & Validation__ | Provide friendly parser errors with file/line info.                                                            | [`thiserror`](https://docs.rs/thiserror)                                  |
 | __Basic CLI UX__       | `slides present file.md` runs full TUI.<br>`slides print` renders to stdout with width constraint.             | `clap`                                                                    |
 

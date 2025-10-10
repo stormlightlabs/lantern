@@ -16,10 +16,7 @@ pub struct Terminal {
 
 impl Default for Terminal {
     fn default() -> Self {
-        Self {
-            in_alternate_screen: true,
-            in_raw_mode: true,
-        }
+        Self { in_alternate_screen: true, in_raw_mode: true }
     }
 }
 
@@ -175,5 +172,30 @@ mod tests {
     fn input_event_resize() {
         let resize = InputEvent::from_crossterm(Event::Resize(80, 24));
         assert_eq!(resize, InputEvent::Resize { width: 80, height: 24 });
+    }
+
+    #[test]
+    fn terminal_default_state() {
+        let terminal = Terminal::default();
+        assert!(terminal.in_alternate_screen);
+        assert!(terminal.in_raw_mode);
+    }
+
+    #[test]
+    fn terminal_restore_idempotent() {
+        let mut terminal = Terminal { in_alternate_screen: false, in_raw_mode: false };
+
+        assert!(terminal.restore().is_ok());
+        assert!(terminal.restore().is_ok());
+        assert!(!terminal.in_alternate_screen);
+        assert!(!terminal.in_raw_mode);
+    }
+
+    #[test]
+    fn terminal_restore_clears_flags() {
+        let mut terminal = Terminal { in_alternate_screen: false, in_raw_mode: false };
+        let _ = terminal.restore();
+        assert!(!terminal.in_alternate_screen);
+        assert!(!terminal.in_raw_mode);
     }
 }
