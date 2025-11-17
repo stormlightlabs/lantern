@@ -8,4 +8,5 @@
 
 # Reference
 
+- [Themes](./appendices/themes.md)
 - [Symbols](./appendices/symbols.md)

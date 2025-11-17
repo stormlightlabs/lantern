@@ -8,7 +8,7 @@ __Color as Data:__
 All color use flows through typed wrappers using `owo-colors`. No ad-hoc ANSI escapes.
 
 __Themeable:__
-Themes unify visual (Syntect) and terminal (owo) layers.
+Multiple built-in color schemes (basic, monokai, dracula, solarized, nord) with automatic light/dark variant detection based on terminal background. Themes can be selected via frontmatter, CLI flags, or environment variables, with optional explicit variant override using `:light` or `:dark` suffix.
 
 __Reproducible:__
 Everything is reproducible in plain text — decks can render without TUI (using `slides print`).

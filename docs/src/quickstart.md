@@ -152,7 +152,7 @@ Currently supported:
 - Lists (ordered and unordered with nesting)
 - Horizontal rules
 - Blockquotes
-- Tables
+- Tables with automatic column width calculation and proper Unicode borders
 
 ## Speaker Notes
 
@@ -186,9 +186,13 @@ The status bar at the bottom displays:
 Customize defaults with environment variables:
 
 ```bash
-# Set default theme
+# Set default theme (options: default, dark, light, monokai, dracula, solarized_dark, nord)
 export SLIDES_THEME=dark
 
 # Set default author (used if not in frontmatter)
 export USER=YourName
 ```
+
+## Themes
+
+See the [Themes](./appendices/themes.md) reference for details on all available themes and customization options.

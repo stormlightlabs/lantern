@@ -1,6 +1,6 @@
 use clap::{Parser, Subcommand};
 use ratatui::{Terminal, backend::CrosstermBackend};
-use slides_core::{parser::parse_slides_with_meta, term::Terminal as SlideTerminal, theme::ThemeColors};
+use slides_core::{parser::parse_slides_with_meta, term::Terminal as SlideTerminal, theme::ThemeRegistry};
 use slides_tui::App;
 use std::{io, path::PathBuf};
 use tracing::Level;
@@ -112,7 +112,7 @@ fn run_present(file: &PathBuf, theme_arg: Option<String>) -> io::Result<()> {
     let theme_name = theme_arg.unwrap_or_else(|| meta.theme.clone());
     tracing::debug!("Using theme: {}", theme_name);
 
-    let theme = ThemeColors::default();
+    let theme = ThemeRegistry::get(&theme_name);
 
     let filename = file
         .file_name()
@@ -156,8 +156,7 @@ fn run_print(file: &PathBuf, width: usize, theme_arg: Option<String>) -> io::Res
     let theme_name = theme_arg.unwrap_or_else(|| meta.theme.clone());
     tracing::debug!("Using theme: {}", theme_name);
 
-    // TODO: Load theme from theme registry based on theme_name
-    let theme = ThemeColors::default();
+    let theme = ThemeRegistry::get(&theme_name);
 
     slides_core::printer::print_slides_to_stdout(&slides, &theme, width)?;
 
@@ -261,5 +260,33 @@ mod tests {
         let test_file = PathBuf::from("/nonexistent/file.md");
         let result = run_print(&test_file, 80, None);
         assert!(result.is_err());
+    }
+
+    #[test]
+    fn run_print_with_theme_from_frontmatter() {
+        let temp_dir = std::env::temp_dir();
+        let test_file = temp_dir.join("test_themed_slides.md");
+
+        let content = "---\ntheme: dark\n---\n# Test Slide\n\nThis is a test paragraph.";
+        std::fs::write(&test_file, content).expect("Failed to write test file");
+
+        let result = run_print(&test_file, 80, None);
+        assert!(result.is_ok());
+
+        std::fs::remove_file(&test_file).ok();
+    }
+
+    #[test]
+    fn run_print_with_theme_override() {
+        let temp_dir = std::env::temp_dir();
+        let test_file = temp_dir.join("test_override_slides.md");
+
+        let content = "---\ntheme: light\n---\n# Test Slide\n\nThis is a test paragraph.";
+        std::fs::write(&test_file, content).expect("Failed to write test file");
+
+        let result = run_print(&test_file, 80, Some("monokai".to_string()));
+        assert!(result.is_ok());
+
+        std::fs::remove_file(&test_file).ok();
     }
 }
