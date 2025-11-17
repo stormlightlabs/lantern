@@ -30,7 +30,7 @@ __Objective:__ Parse markdown documents into a rich `Slide` struct.
 | __✓ Slide Model__      | Define structs: `Slide`, `Block`, `TextSpan`, `CodeBlock`, etc. | Internal             |
 | __✓ Metadata Parsing__ | Optional front matter (YAML/TOML) for theme, author, etc.       | `serde_yml`[^5]      |
 | __Error & Validation__ | Provide friendly parser errors with file/line info.             | `thiserror`[^6]      |
-| __Basic CLI UX__       | `slides present file.md` runs full TUI.                         | `clap`               |
+| __✓ Basic CLI UX__     | `slides present file.md` runs full TUI.                         | `clap`               |
 |                        | `slides print` renders to stdout with width constraint.         |                      |
 
 ## Rendering & Navigation
@@ -40,8 +40,8 @@ __Objective:__ Build the interactive slide renderer with navigation.
 | Task                      | Description                                                                                       | Key Crates             |
 | ------------------------- | ------------------------------------------------------------------------------------------------- | ---------------------- |
 | __✓ Ratatui Integration__ | Build basic slide viewer using layout, blocks, paragraphs.                                        | `ratatui`[^7]          |
-| __Input & State__         | Support `←/→`, `j/k`, `q`, numeric jumps, and window resize.                                      | `crossterm`, `ratatui` |
-| __Status Bar__            | Display slide count, filename, clock, and theme name.                                             | `ratatui`              |
+| __✓ Input & State__       | Support `←/→`, `j/k`, `q`, numeric jumps, and window resize.                                      | `crossterm`, `ratatui` |
+| __✓ Status Bar__          | Display slide count, filename, clock, and theme name.                                             | `ratatui`              |
 | __✓ Color Styling__       | Apply consistent color palette via `owo-colors`. Define traits like `ThemeColor`.                 | `owo-colors`           |
 | __Configurable Themes__   | Support themes via TOML files mapping semantic roles (`heading`, `body`, `accent`) → color pairs. | `toml`, `serde`        |
 
@@ -82,7 +82,7 @@ __Objective:__ Add richness and visual polish to text and layout.
 | __Tables & Lists__   | Render GitHub-style tables, bullets, and task lists.         | `pulldown-cmark`, `ratatui`   |
 | __Admonitions__      | Highlighted boxes with icons                                 | `owo-colors`, internal glyphs |
 | __Horizontal Rules__ | Use box-drawing (`─`, `═`) and shading (`░`, `▓`).           | Unicode constants             |
-| __Generators__.      | `slides init` scaffolds an example deck with code and notes. | `include_str!`, `fs`          |
+| __Generators__       | `slides init` scaffolds an example deck with code and notes. | `include_str!`, `fs`          |
 
 ## RC
 

@@ -24,7 +24,6 @@ enum Commands {
     Present {
         /// Path to the markdown file
         file: PathBuf,
-
         /// Theme to use for presentation
         #[arg(short, long)]
         theme: Option<String>,
@@ -34,11 +33,9 @@ enum Commands {
     Print {
         /// Path to the markdown file
         file: PathBuf,
-
         /// Maximum width for output (in characters)
         #[arg(short, long, default_value = "80")]
         width: usize,
-
         /// Theme to use for coloring
         #[arg(short, long)]
         theme: Option<String>,
@@ -49,7 +46,6 @@ enum Commands {
         /// Directory to create the deck in
         #[arg(default_value = ".")]
         path: PathBuf,
-
         /// Name of the deck file
         #[arg(short, long, default_value = "slides.md")]
         name: String,
@@ -59,7 +55,6 @@ enum Commands {
     Check {
         /// Path to the markdown file
         file: PathBuf,
-
         /// Enable strict mode with additional checks
         #[arg(short, long)]
         strict: bool,
@@ -80,11 +75,10 @@ fn main() {
         }
 
         Commands::Print { file, width, theme } => {
-            tracing::info!("Printing slides from: {} (width: {})", file.display(), width);
-            if let Some(theme) = theme {
-                tracing::debug!("Using theme: {}", theme);
+            if let Err(e) = run_print(&file, width, theme) {
+                eprintln!("Error: {}", e);
+                std::process::exit(1);
             }
-            eprintln!("Print mode not yet implemented");
         }
 
         Commands::Init { path, name } => {
@@ -144,6 +138,30 @@ fn run_present(file: &PathBuf, theme_arg: Option<String>) -> io::Result<()> {
     slide_terminal.restore()?;
 
     result
+}
+
+fn run_print(file: &PathBuf, width: usize, theme_arg: Option<String>) -> io::Result<()> {
+    tracing::info!("Printing slides from: {} (width: {})", file.display(), width);
+
+    let markdown = std::fs::read_to_string(file)
+        .map_err(|e| io::Error::new(e.kind(), format!("Failed to read file {}: {}", file.display(), e)))?;
+
+    let (meta, slides) = parse_slides_with_meta(&markdown)
+        .map_err(|e| io::Error::new(io::ErrorKind::InvalidData, format!("Parse error: {}", e)))?;
+
+    if slides.is_empty() {
+        return Err(io::Error::new(io::ErrorKind::InvalidData, "No slides found in file"));
+    }
+
+    let theme_name = theme_arg.unwrap_or_else(|| meta.theme.clone());
+    tracing::debug!("Using theme: {}", theme_name);
+
+    // TODO: Load theme from theme registry based on theme_name
+    let theme = ThemeColors::default();
+
+    slides_core::printer::print_slides_to_stdout(&slides, &theme, width)?;
+
+    Ok(())
 }
 
 #[cfg(test)]
@@ -209,5 +227,39 @@ mod tests {
             }
             _ => panic!("Expected Check command"),
         }
+    }
+
+    #[test]
+    fn run_print_with_test_file() {
+        let temp_dir = std::env::temp_dir();
+        let test_file = temp_dir.join("test_slides.md");
+
+        let content = "# Test Slide\n\nThis is a test paragraph.\n\n---\n\n# Second Slide\n\n- Item 1\n- Item 2";
+        std::fs::write(&test_file, content).expect("Failed to write test file");
+
+        let result = run_print(&test_file, 80, None);
+        assert!(result.is_ok());
+
+        std::fs::remove_file(&test_file).ok();
+    }
+
+    #[test]
+    fn run_print_empty_file() {
+        let temp_dir = std::env::temp_dir();
+        let test_file = temp_dir.join("empty_slides.md");
+
+        std::fs::write(&test_file, "").expect("Failed to write test file");
+
+        let result = run_print(&test_file, 80, None);
+        assert!(result.is_err());
+
+        std::fs::remove_file(&test_file).ok();
+    }
+
+    #[test]
+    fn run_print_nonexistent_file() {
+        let test_file = PathBuf::from("/nonexistent/file.md");
+        let result = run_print(&test_file, 80, None);
+        assert!(result.is_err());
     }
 }
