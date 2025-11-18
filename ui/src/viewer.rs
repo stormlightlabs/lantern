@@ -1,14 +1,66 @@
+use lantern_core::{slide::Slide, theme::ThemeColors};
 use ratatui::{
     Frame,
     layout::Rect,
     style::{Color, Modifier, Style},
     text::{Line, Span},
-    widgets::{Block, Borders, Paragraph, Wrap},
+    widgets::{Block, Borders, Padding, Paragraph, Wrap},
 };
-use lantern_core::{slide::Slide, theme::ThemeColors};
 use std::time::Instant;
 
 use crate::renderer::render_slide_content;
+
+#[derive(Clone, Copy)]
+struct Stylesheet {
+    theme: ThemeColors,
+}
+
+impl Stylesheet {
+    fn new(theme: ThemeColors) -> Self {
+        Self { theme }
+    }
+
+    fn slide_padding() -> Padding {
+        Padding::new(4, 4, 2, 2)
+    }
+
+    fn status_bar(&self) -> Style {
+        Style::default()
+            .bg(self.bg_color())
+            .fg(self.ui_text_color())
+            .add_modifier(Modifier::BOLD)
+    }
+
+    fn border_color(&self) -> Color {
+        Color::Rgb(self.theme.ui_border.r, self.theme.ui_border.g, self.theme.ui_border.b)
+    }
+
+    fn title_color(&self) -> Color {
+        Color::Rgb(self.theme.ui_title.r, self.theme.ui_title.g, self.theme.ui_title.b)
+    }
+
+    fn text_color(&self) -> Color {
+        Color::Rgb(self.theme.body.r, self.theme.body.g, self.theme.body.b)
+    }
+
+    fn bg_color(&self) -> Color {
+        Color::Rgb(
+            self.theme.ui_background.r,
+            self.theme.ui_background.g,
+            self.theme.ui_background.b,
+        )
+    }
+
+    fn ui_text_color(&self) -> Color {
+        Color::Rgb(self.theme.ui_text.r, self.theme.ui_text.g, self.theme.ui_text.b)
+    }
+}
+
+impl From<ThemeColors> for Stylesheet {
+    fn from(value: ThemeColors) -> Self {
+        Self::new(value)
+    }
+}
 
 /// Slide viewer state manager
 ///
@@ -17,8 +69,8 @@ pub struct SlideViewer {
     slides: Vec<Slide>,
     current_index: usize,
     show_notes: bool,
-    theme: ThemeColors,
     filename: Option<String>,
+    stylesheet: Stylesheet,
     theme_name: String,
     start_time: Option<Instant>,
 }
@@ -30,7 +82,7 @@ impl SlideViewer {
             slides,
             current_index: 0,
             show_notes: false,
-            theme,
+            stylesheet: theme.into(),
             filename: None,
             theme_name: "default".to_string(),
             start_time: None,
@@ -42,7 +94,15 @@ impl SlideViewer {
         slides: Vec<Slide>, theme: ThemeColors, filename: Option<String>, theme_name: String,
         start_time: Option<Instant>,
     ) -> Self {
-        Self { slides, current_index: 0, show_notes: false, theme, filename, theme_name, start_time }
+        Self {
+            slides,
+            current_index: 0,
+            show_notes: false,
+            stylesheet: theme.into(),
+            filename,
+            theme_name,
+            start_time,
+        }
     }
 
     /// Navigate to the next slide
@@ -91,16 +151,23 @@ impl SlideViewer {
         self.show_notes
     }
 
+    fn theme(&self) -> ThemeColors {
+        self.stylesheet.theme.clone()
+    }
+
     /// Render the current slide to the frame
     pub fn render(&self, frame: &mut Frame, area: Rect) {
         if let Some(slide) = self.current_slide() {
-            let content = render_slide_content(&slide.blocks, &self.theme);
+            let content = render_slide_content(&slide.blocks, &self.theme());
+            let border_color = self.stylesheet.border_color();
+            let title_color = self.stylesheet.title_color();
 
             let block = Block::default()
                 .borders(Borders::ALL)
-                .border_style(Style::default().fg(Color::DarkGray))
+                .border_style(Style::default().fg(border_color))
                 .title(format!(" Slide {}/{} ", self.current_index + 1, self.total_slides()))
-                .title_style(Style::default().fg(Color::Cyan).add_modifier(Modifier::BOLD));
+                .title_style(Style::default().fg(title_color).add_modifier(Modifier::BOLD))
+                .padding(Stylesheet::slide_padding());
 
             let paragraph = Paragraph::new(content).block(block).wrap(Wrap { trim: false });
 
@@ -116,16 +183,21 @@ impl SlideViewer {
 
         if let Some(slide) = self.current_slide() {
             if let Some(notes) = &slide.notes {
+                let border_color = self.stylesheet.border_color();
+                let title_color = self.stylesheet.title_color();
+                let text_color = self.stylesheet.text_color();
+
                 let block = Block::default()
                     .borders(Borders::ALL)
-                    .border_style(Style::default().fg(Color::Yellow))
+                    .border_style(Style::default().fg(border_color))
                     .title(" Speaker Notes ")
-                    .title_style(Style::default().fg(Color::Yellow).add_modifier(Modifier::BOLD));
+                    .title_style(Style::default().fg(title_color).add_modifier(Modifier::BOLD))
+                    .padding(Stylesheet::slide_padding());
 
                 let paragraph = Paragraph::new(notes.clone())
                     .block(block)
                     .wrap(Wrap { trim: false })
-                    .style(Style::default().fg(Color::Gray));
+                    .style(Style::default().fg(text_color));
 
                 frame.render_widget(paragraph, area);
             }
@@ -160,10 +232,7 @@ impl SlideViewer {
 
         let status = Paragraph::new(Line::from(vec![Span::styled(
             status_text,
-            Style::default()
-                .bg(Color::DarkGray)
-                .fg(Color::White)
-                .add_modifier(Modifier::BOLD),
+            self.stylesheet.status_bar(),
         )]));
 
         frame.render_widget(status, area);

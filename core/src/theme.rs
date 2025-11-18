@@ -129,9 +129,8 @@ pub fn detect_is_dark() -> bool {
 
 /// Color theme abstraction for slides with semantic roles for consistent theming across the application.
 ///
-/// Stores RGB colors that can be converted to both owo-colors Style (for terminal output)
-/// and ratatui Color (for TUI rendering) via Into implementations.
-#[derive(Debug, Clone)]
+/// Stores RGB colors that can be converted to both owo-colors Style (for terminal output) and ratatui Color (for TUI rendering).
+#[derive(Debug, Clone, Copy)]
 pub struct ThemeColors {
     pub heading: Color,
     pub heading_bold: bool,
@@ -652,7 +651,6 @@ palette:
         assert!(theme.link(&"Test").to_string().contains("Test"));
         assert!(theme.inline_code_bg(&"Test").to_string().contains("Test"));
 
-        // UI colors don't need style methods, just verify they exist
         let _ = theme.ui_border;
         let _ = theme.ui_title;
         let _ = theme.ui_text;

@@ -22,16 +22,16 @@ __Objective:__ Establish a clean, testable core with `clap` and a minimal `ratat
 
 __Objective:__ Parse markdown documents into a rich `Slide` struct.
 
-| Task                   | Description                                                     | Key Crates           |
-| ---------------------- | --------------------------------------------------------------- | -------------------- |
-| __✓ Parser Core__      | Split files on `---` separators.                                | `pulldown-cmark`[^4] |
-|                        | Detect title blocks, lists, and code fences.                    |                      |
-|                        | Represent as `Vec<Slide>`.                                      |                      |
-| __✓ Slide Model__      | Define structs: `Slide`, `Block`, `TextSpan`, `CodeBlock`, etc. | Internal             |
-| __✓ Metadata Parsing__ | Optional front matter (YAML/TOML) for theme, author, etc.       | `serde_yml`[^5]      |
-| __Error & Validation__ | Provide friendly parser errors with file/line info.             | `thiserror`[^6]      |
-| __✓ Basic CLI UX__     | `slides present file.md` runs full TUI.                         | `clap`               |
-|                        | `slides print` renders to stdout with width constraint.         |                      |
+| Task                    | Description                                                     | Key Crates           |
+| ----------------------- | --------------------------------------------------------------- | -------------------- |
+| __✓ Parser Core__       | Split files on `---` separators.                                | `pulldown-cmark`[^4] |
+|                         | Detect title blocks, lists, and code fences.                    |                      |
+|                         | Represent as `Vec<Slide>`.                                      |                      |
+| __✓ Slide Model__       | Define structs: `Slide`, `Block`, `TextSpan`, `CodeBlock`, etc. | Internal             |
+| __✓ Metadata Parsing__  | Optional front matter (YAML/TOML) for theme, author, etc.       | `serde_yml`[^5]      |
+| __Error & Validation__  | Provide friendly parser errors with file/line info.             | `thiserror`[^6]      |
+| __✓ Basic CLI UX__      | `lantern present file.md` runs full TUI.                        | `clap`               |
+|                         | `lantern print` renders to stdout with width constraint.        |                      |
 
 ## Rendering & Navigation
 
@@ -44,7 +44,8 @@ __Objective:__ Build the interactive slide renderer with navigation.
 | __✓ Status Bar__          | Display slide count, filename, clock, and theme name.                                             | `ratatui`              |
 | __✓ Color Styling__       | Apply consistent color palette via `owo-colors`. Define traits like `ThemeColor`.                 | `owo-colors`           |
 | __✓ Unicode Headings__    | Use Unicode block symbols (▉▓▒░▌) for h1-h6 instead of markdown `#` syntax.                       | Unicode constants      |
-| __Configurable Themes__   | Base16 YAML theme system with 10 prebuilt themes. Add user theme loading from config directory and CLI `--theme-file` flag. | `serde_yml`, `serde`, `dirs` |
+| __Configurable Themes__   | Base16 YAML theme system with 10 prebuilt themes.                                                 | `serde_yml`, `serde`   |
+|                           | Add user theme loading from config directory and CLI `--theme-file` flag.                         | `dirs`                 |
 
 ---
 
@@ -60,7 +61,7 @@ __Objective:__ Add first-class syntax highlighting using Syntect.
 |                     | Render syntax-highlighted text with color spans mapped to `owo-colors`.      |                         |
 | __✓ Theming__       | Map terminal theme choice to Syntect theme (e.g., `"OneDark"`, `"Monokai"`). | `syntect`               |
 | __✓ Performance__   | Lazy-load themes and syntaxes; use `OnceLock` for caching.                   | `std::sync::OnceLock`   |
-| __✓ Mode__          | Render to ANSI-colored plain text output (for `slides print`).               | `owo-colors`            |
+| __✓ Mode__          | Render to ANSI-colored plain text output (for `lantern print`).              | `owo-colors`            |
 
 ## Presenter
 
@@ -78,12 +79,12 @@ __Objective:__ Introduce features for live presentations and authoring convenien
 
 __Objective:__ Add richness and visual polish to text and layout.
 
-| Task                 | Description                                                  | Key Crates                    |
-| -------------------- | ------------------------------------------------------------ | ----------------------------- |
-| __Tables & Lists__   | Render GitHub-style tables, bullets, and task lists.         | `pulldown-cmark`, `ratatui`   |
-| __Admonitions__      | Highlighted boxes with icons                                 | `owo-colors`, internal glyphs |
-| __Horizontal Rules__ | Use box-drawing (`─`, `═`) and shading (`░`, `▓`).           | Unicode constants             |
-| __Generators__       | `slides init` scaffolds an example deck with code and notes. | `include_str!`, `fs`          |
+| Task                 | Description                                                   | Key Crates                    |
+| -------------------- | ------------------------------------------------------------- | ----------------------------- |
+| __Tables & Lists__   | Render GitHub-style tables, bullets, and task lists.          | `pulldown-cmark`, `ratatui`   |
+| __Admonitions__      | Highlighted boxes with icons                                  | `owo-colors`, internal glyphs |
+| __Horizontal Rules__ | Use box-drawing (`─`, `═`) and shading (`░`, `▓`).            | Unicode constants             |
+| __Generators__       | `lantern init` scaffolds an example deck with code and notes. | `include_str!`, `fs`          |
 
 ## RC
 
@@ -113,7 +114,7 @@ __Objective:__ Generate high-quality PNG/SVG snapshots of any slide (Freeze-styl
 | __Canvas → Pixmap__           | Implement a `FrameRasterizer` that turns a `Frame` + layout into an RGBA pixmap (background, panes, etc). | `tiny-skia`                       |
 | __Text Rendering__            | Render slide titles/body text via glyph rasterization and simple layout (left/center, line wrapping).     | `ab_glyph`                        |
 | __Terminal Snapshot Mode__    | Convert `TerminalBuffer` into a rendered terminal "window" (frame, tabs, padding, cursor).                | `tiny-skia`, `ab_glyph`           |
-| __Slide Screenshot CLI__      | `slides export-image deck.md --slide 5 --output slide-5.png` (PNG by default, optional SVG/WebP).         | `clap`, `image`                   |
+| __Slide Screenshot CLI__      | `lantern export-image deck.md --slide 5 --output slide-5.png` (PNG by default, optional SVG/WebP).        | `clap`, `image`                   |
 | __Batch Export__              | `--all` / `--range 3..7` to dump multiple slides, naming convention like `deck-003.png`.                  | `image`                           |
 | __Deterministic Layout Test__ | Golden tests comparing generated PNGs against fixtures for regression in layout and text.                 | `image`, integration test harness |
 
@@ -126,7 +127,7 @@ __Objective:__ Produce MP4/WebM/GIF recordings of a scripted terminal+slides run
 | __Timeline Scheduling__       | Extend `Event` to carry timestamps or durations; implement `Scheduler` to emit frames at target FPS.           | internal `timeline` module                               |                   |
 | __Frame Capture Loop__        | Drive the same layout/rasterizer used for images at N FPS, yielding a sequence of RGBA frames.                 | `tiny-skia`, `image`                                     |                   |
 | __FFmpeg Binding Layer__      | Wrap `ffmpeg-next` to open an encoder, configure codec/container, and accept raw frames.                       | `ffmpeg-next`                                            |                   |
-| __Video Export CLI__          | `slides export-video deck.md --output demo.mp4 --fps 30 --duration 120s` (or auto-duration from events).       | `clap`, internal encoder                                 |                   |
+| __Video Export CLI__          | `lantern export-video deck.md --output demo.mp4 --fps 30 --duration 120s` (or auto-duration from events).      | `clap`, internal encoder                                 |                   |
 | __GIF / WebM Variants__       | Add `--format gif                                                                                              | webm` mapping to appropriate ffmpeg muxer/codec presets. | `ffmpeg-next`[^7] |
 | __Typing & Cursor Effects__   | Represent typing, deletes, cursor blinks as timeline events, so video export matches live presentation feel.   | internal `timeline`, terminal core                       |                   |
 | __Audio-less Simplification__ | Keep V1 video export silent (no audio tracks) for simpler ffmpeg integration and smaller binaries.             | `ffmpeg-next`                                            |                   |
@@ -140,7 +141,7 @@ __Objective:__ Generate vertical (portrait) slides optimized for short-form vert
 | -------------------------- | ------------------------------------------------------------------------------------------------ | ----------------------------- |
 | __Portrait Layout Engine__ | Implement 9:16 aspect ratio layout with vertical constraints (1080x1920, 720x1280).              | internal `layout` module      |
 | __Mobile-Optimized Text__  | Larger font sizes, reduced content density, and simplified layouts for mobile readability.       | `ab_glyph`, `tiny-skia`       |
-| __Vertical Export CLI__    | `slides export-vertical deck.md --output reel.mp4` with preset dimensions for each platform.     | `clap`, internal encoder      |
+| __Vertical Export CLI__    | `lantern export-vertical deck.md --output reel.mp4` with preset dimensions for each platform.    | `clap`, internal encoder      |
 | __Platform Presets__       | Built-in presets: `instagram-reel`, `tiktok`, `youtube-shorts` with optimal resolution/duration. | internal preset registry      |
 | __Content Adaptation__     | Auto-scale or warn when horizontal content doesn't fit portrait orientation.                     | internal `layout` module      |
 | __Safe Zones__             | Respect platform UI overlays (captions, profile pics) with configurable safe zones.              | internal `layout` module      |
@@ -152,7 +153,7 @@ __Objective:__ Make "slides → image/video" a natural extension of your current
 
 | Task                     | Description                                                                                      | Key Crates                   |
 | ------------------------ | ------------------------------------------------------------------------------------------------ | ---------------------------- |
-| __Export Subcommands__   | Add `slides export-image` and `slides export-video` commands with shared flags (theme, range).   | `clap`                       |
+| __Export Subcommands__   | Add `lantern export-image` and `lantern export-video` commands with shared flags (theme, range). | `clap`                       |
 | __Frontmatter Controls__ | Support per-deck/per-slide frontmatter: `fps`, `default_duration`, `transition`, `record: true`. | `pulldown-cmark-frontmatter` |
 | __Deterministic Seeds__  | Add `--seed` for any animations (typing jitter, cursor blink timing) to keep exports repeatable. | internal `timeline`          |
 | __Preset Profiles__      | Presets like `social-card`, `doc-screenshot`, `talk-demo` mapping to resolution + theme.         | internal profile registry    |
