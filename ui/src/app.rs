@@ -1,5 +1,10 @@
 use lantern_core::{metadata::Meta, slide::Slide, term::InputEvent, theme::ThemeColors};
-use ratatui::{Terminal as RatatuiTerminal, backend::Backend};
+use ratatui::{
+    Terminal as RatatuiTerminal,
+    backend::Backend,
+    style::{Color, Style},
+    widgets::Block,
+};
 use std::io;
 use std::time::{Duration, Instant};
 
@@ -12,8 +17,8 @@ pub struct App {
     viewer: SlideViewer,
     layout: SlideLayout,
     should_quit: bool,
-    _filename: String,
-    _start_time: Instant,
+    theme: ThemeColors,
+    help_visible: bool,
 }
 
 impl App {
@@ -27,13 +32,7 @@ impl App {
             Some(Instant::now()),
         );
 
-        Self {
-            viewer,
-            layout: SlideLayout::default(),
-            _filename: filename,
-            _start_time: Instant::now(),
-            should_quit: false,
-        }
+        Self { viewer, layout: SlideLayout::default(), should_quit: false, theme, help_visible: false }
     }
 
     /// Run the main event loop
@@ -58,25 +57,35 @@ impl App {
         self.layout.set_show_notes(self.viewer.is_showing_notes())
     }
 
+    fn toggle_help(&mut self) {
+        self.help_visible = !self.help_visible;
+        self.layout.set_show_help(self.help_visible);
+    }
+
     /// Handle input events
     fn handle_event(&mut self, event: InputEvent) {
         match event {
             InputEvent::Next => self.viewer.next(),
             InputEvent::Previous => self.viewer.previous(),
-            InputEvent::Jump(n) => self.viewer.jump_to(n),
             InputEvent::ToggleNotes => self.toggle_notes(),
+            InputEvent::ToggleHelp => self.toggle_help(),
             InputEvent::Quit => self.should_quit = true,
-            // NOTE: Terminal resize is handled automatically by ratatui
-            InputEvent::Resize { .. } => {}
-            // TODO: Implement search functionality
-            InputEvent::Search => {}
-            InputEvent::Other => {}
+            InputEvent::Resize { .. } | InputEvent::Search | InputEvent::Other => {}
         }
     }
 
     /// Draw the UI
     fn draw(&mut self, frame: &mut ratatui::Frame) {
-        let (main_area, notes_area, status_area) = self.layout.calculate(frame.area());
+        let bg_color = Color::Rgb(
+            self.theme.ui_background.r,
+            self.theme.ui_background.g,
+            self.theme.ui_background.b,
+        );
+
+        let background = Block::default().style(Style::default().bg(bg_color));
+        frame.render_widget(background, frame.area());
+
+        let (main_area, notes_area, status_area, help_area) = self.layout.calculate(frame.area());
 
         self.viewer.render(frame, main_area);
 
@@ -85,6 +94,10 @@ impl App {
         }
 
         self.viewer.render_status_bar(frame, status_area);
+
+        if let Some(help_area) = help_area {
+            self.viewer.render_help_line(frame, help_area);
+        }
     }
 }
 
@@ -112,7 +125,6 @@ mod tests {
     fn app_creation() {
         let app = create_test_app();
         assert!(!app.should_quit);
-        assert_eq!(app._filename, "test.md");
     }
 
     #[test]
@@ -130,13 +142,6 @@ mod tests {
         app.handle_event(InputEvent::Next);
         app.handle_event(InputEvent::Previous);
         assert_eq!(app.viewer.current_index(), 0);
-    }
-
-    #[test]
-    fn app_handle_jump() {
-        let mut app = create_test_app();
-        app.handle_event(InputEvent::Jump(1));
-        assert_eq!(app.viewer.current_index(), 1);
     }
 
     #[test]
@@ -163,5 +168,20 @@ mod tests {
         let mut app = create_test_app();
         app.handle_event(InputEvent::Resize { width: 100, height: 50 });
         assert!(!app.should_quit);
+    }
+
+    #[test]
+    fn app_handle_toggle_help() {
+        let mut app = create_test_app();
+        assert!(!app.help_visible);
+        assert!(!app.layout.is_showing_help());
+
+        app.handle_event(InputEvent::ToggleHelp);
+        assert!(app.help_visible);
+        assert!(app.layout.is_showing_help());
+
+        app.handle_event(InputEvent::ToggleHelp);
+        assert!(!app.help_visible);
+        assert!(!app.layout.is_showing_help());
     }
 }

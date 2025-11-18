@@ -1,7 +1,7 @@
 use crate::error::Result;
 use crate::metadata::Meta;
 use crate::slide::*;
-use pulldown_cmark::{Event, Parser, Tag, TagEnd};
+use pulldown_cmark::{Alignment as PulldownAlignment, Event, Options, Parser, Tag, TagEnd};
 
 /// Parse markdown content into metadata and slides
 ///
@@ -45,7 +45,10 @@ fn split_slides(markdown: &str) -> Vec<String> {
 
 /// Parse a single slide from markdown
 fn parse_slide(markdown: String) -> Result<Slide> {
-    let parser = Parser::new(&markdown);
+    let mut options = Options::empty();
+    options.insert(Options::ENABLE_TABLES);
+    options.insert(Options::ENABLE_STRIKETHROUGH);
+    let parser = Parser::new_ext(&markdown, options);
     let mut blocks = Vec::new();
     let mut block_stack: Vec<BlockBuilder> = Vec::new();
     let mut current_style = TextStyle::default();
@@ -57,13 +60,11 @@ fn parse_slide(markdown: String) -> Result<Slide> {
                     block_stack.push(BlockBuilder::Heading {
                         level: level as u8,
                         spans: Vec::new(),
-                        style: current_style.clone(),
                     });
                 }
                 Tag::Paragraph => {
                     block_stack.push(BlockBuilder::Paragraph {
                         spans: Vec::new(),
-                        style: current_style.clone(),
                     });
                 }
                 Tag::CodeBlock(kind) => {
@@ -87,12 +88,36 @@ fn parse_slide(markdown: String) -> Result<Slide> {
                         ordered: first.is_some(),
                         items: Vec::new(),
                         current_item: Vec::new(),
-                        style: current_style.clone(),
                     });
                 }
                 Tag::BlockQuote(_) => {
                     block_stack.push(BlockBuilder::BlockQuote { blocks: Vec::new() });
                 }
+                Tag::Table(alignments) => {
+                    let converted_alignments = alignments
+                        .iter()
+                        .map(|a| match a {
+                            PulldownAlignment::None | PulldownAlignment::Left => Alignment::Left,
+                            PulldownAlignment::Center => Alignment::Center,
+                            PulldownAlignment::Right => Alignment::Right,
+                        })
+                        .collect();
+                    block_stack.push(BlockBuilder::Table {
+                        headers: Vec::new(),
+                        rows: Vec::new(),
+                        current_row: Vec::new(),
+                        current_cell: Vec::new(),
+                        alignments: converted_alignments,
+                        in_header: false,
+                    });
+                }
+                Tag::TableHead => {
+                    if let Some(BlockBuilder::Table { in_header, .. }) = block_stack.last_mut() {
+                        *in_header = true;
+                    }
+                }
+                Tag::TableRow => {}
+                Tag::TableCell => {}
                 Tag::Item => {}
                 Tag::Emphasis => {
                     current_style.italic = true;
@@ -122,6 +147,47 @@ fn parse_slide(markdown: String) -> Result<Slide> {
                         blocks.push(builder.build());
                     }
                 }
+                TagEnd::Table => {
+                    if let Some(builder) = block_stack.pop() {
+                        blocks.push(builder.build());
+                    }
+                }
+                TagEnd::TableHead => {
+                    if let Some(BlockBuilder::Table {
+                        current_row,
+                        headers,
+                        in_header,
+                        ..
+                    }) = block_stack.last_mut()
+                    {
+                        if !current_row.is_empty() {
+                            *headers = current_row.drain(..).collect();
+                        }
+                        *in_header = false;
+                    }
+                }
+                TagEnd::TableRow => {
+                    if let Some(BlockBuilder::Table {
+                        current_row,
+                        rows,
+                        ..
+                    }) = block_stack.last_mut()
+                    {
+                        if !current_row.is_empty() {
+                            rows.push(current_row.drain(..).collect());
+                        }
+                    }
+                }
+                TagEnd::TableCell => {
+                    if let Some(BlockBuilder::Table {
+                        current_cell,
+                        current_row,
+                        ..
+                    }) = block_stack.last_mut()
+                    {
+                        current_row.push(current_cell.drain(..).collect());
+                    }
+                }
                 TagEnd::Item => {
                     if let Some(BlockBuilder::List {
                         current_item, items, ..
@@ -149,7 +215,7 @@ fn parse_slide(markdown: String) -> Result<Slide> {
 
             Event::Text(text) => {
                 if let Some(builder) = block_stack.last_mut() {
-                    builder.add_text(text.to_string());
+                    builder.add_text(text.to_string(), &current_style);
                 }
             }
 
@@ -161,7 +227,7 @@ fn parse_slide(markdown: String) -> Result<Slide> {
 
             Event::SoftBreak | Event::HardBreak => {
                 if let Some(builder) = block_stack.last_mut() {
-                    builder.add_text(" ".to_string());
+                    builder.add_text(" ".to_string(), &current_style);
                 }
             }
 
@@ -181,11 +247,9 @@ enum BlockBuilder {
     Heading {
         level: u8,
         spans: Vec<TextSpan>,
-        style: TextStyle,
     },
     Paragraph {
         spans: Vec<TextSpan>,
-        style: TextStyle,
     },
     Code {
         language: Option<String>,
@@ -195,34 +259,47 @@ enum BlockBuilder {
         ordered: bool,
         items: Vec<ListItem>,
         current_item: Vec<TextSpan>,
-        style: TextStyle,
     },
     BlockQuote {
         blocks: Vec<Block>,
     },
+    Table {
+        headers: Vec<Vec<TextSpan>>,
+        rows: Vec<Vec<Vec<TextSpan>>>,
+        current_row: Vec<Vec<TextSpan>>,
+        current_cell: Vec<TextSpan>,
+        alignments: Vec<Alignment>,
+        in_header: bool,
+    },
 }
 
 impl BlockBuilder {
-    fn add_text(&mut self, text: String) {
+    fn add_text(&mut self, text: String, current_style: &TextStyle) {
         match self {
-            Self::Heading { spans, style, .. } | Self::Paragraph { spans, style } => {
+            Self::Heading { spans, .. } | Self::Paragraph { spans, .. } => {
                 if !text.is_empty() {
                     spans.push(TextSpan {
                         text,
-                        style: style.clone(),
+                        style: current_style.clone(),
                     });
                 }
             }
             Self::Code { code, .. } => {
                 code.push_str(&text);
             }
-            Self::List {
-                current_item, style, ..
-            } => {
+            Self::List { current_item, .. } => {
                 if !text.is_empty() {
                     current_item.push(TextSpan {
                         text,
-                        style: style.clone(),
+                        style: current_style.clone(),
+                    });
+                }
+            }
+            Self::Table { current_cell, .. } => {
+                if !text.is_empty() {
+                    current_cell.push(TextSpan {
+                        text,
+                        style: current_style.clone(),
                     });
                 }
             }
@@ -250,17 +327,36 @@ impl BlockBuilder {
                     },
                 });
             }
+            Self::Table { current_cell, .. } => {
+                current_cell.push(TextSpan {
+                    text: code,
+                    style: TextStyle {
+                        code: true,
+                        ..Default::default()
+                    },
+                });
+            }
             _ => {}
         }
     }
 
     fn build(self) -> Block {
         match self {
-            Self::Heading { level, spans, .. } => Block::Heading { level, spans },
-            Self::Paragraph { spans, .. } => Block::Paragraph { spans },
+            Self::Heading { level, spans } => Block::Heading { level, spans },
+            Self::Paragraph { spans } => Block::Paragraph { spans },
             Self::Code { language, code } => Block::Code(CodeBlock { language, code }),
             Self::List { ordered, items, .. } => Block::List(List { ordered, items }),
             Self::BlockQuote { blocks } => Block::BlockQuote { blocks },
+            Self::Table {
+                headers,
+                rows,
+                alignments,
+                ..
+            } => Block::Table(Table {
+                headers,
+                rows,
+                alignments,
+            }),
         }
     }
 }
@@ -394,5 +490,63 @@ Test content"#;
         let (meta, slides) = parse_slides_with_meta(markdown).unwrap();
         assert_eq!(meta, Meta::default());
         assert_eq!(slides.len(), 1);
+    }
+
+    #[test]
+    fn parse_table() {
+        let markdown = r#"| Name | Age |
+| ---- | --- |
+| Alice | 30 |
+| Bob | 25 |"#;
+        let slides = parse_slides(markdown).unwrap();
+        assert_eq!(slides.len(), 1);
+
+        match &slides[0].blocks[0] {
+            Block::Table(table) => {
+                assert_eq!(table.headers.len(), 2);
+                assert_eq!(table.rows.len(), 2);
+                assert_eq!(table.headers[0][0].text, "Name");
+                assert_eq!(table.headers[1][0].text, "Age");
+                assert_eq!(table.rows[0][0][0].text, "Alice");
+                assert_eq!(table.rows[0][1][0].text, "30");
+                assert_eq!(table.rows[1][0][0].text, "Bob");
+                assert_eq!(table.rows[1][1][0].text, "25");
+            }
+            _ => panic!("Expected table"),
+        }
+    }
+
+    #[test]
+    fn parse_table_with_alignment() {
+        let markdown = r#"| Left | Center | Right |
+| :--- | :----: | ----: |
+| A | B | C |"#;
+        let slides = parse_slides(markdown).unwrap();
+
+        match &slides[0].blocks[0] {
+            Block::Table(table) => {
+                assert_eq!(table.alignments.len(), 3);
+                assert!(matches!(table.alignments[0], Alignment::Left));
+                assert!(matches!(table.alignments[1], Alignment::Center));
+                assert!(matches!(table.alignments[2], Alignment::Right));
+            }
+            _ => panic!("Expected table"),
+        }
+    }
+
+    #[test]
+    fn parse_table_with_styled_text() {
+        let markdown = r#"| Name | Status |
+| ---- | ------ |
+| **Bold** | `code` |"#;
+        let slides = parse_slides(markdown).unwrap();
+
+        match &slides[0].blocks[0] {
+            Block::Table(table) => {
+                assert_eq!(table.rows[0][0][0].style.bold, true);
+                assert_eq!(table.rows[0][1][0].style.code, true);
+            }
+            _ => panic!("Expected table"),
+        }
     }
 }

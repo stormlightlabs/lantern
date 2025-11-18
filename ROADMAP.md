@@ -47,8 +47,6 @@ __Objective:__ Build the interactive slide renderer with navigation.
 | __Configurable Themes__   | Base16 YAML theme system with 10 prebuilt themes.                                                 | `serde_yml`, `serde`   |
 |                           | Add user theme loading from config directory and CLI `--theme-file` flag.                         | `dirs`                 |
 
----
-
 ## Code Highlighting via Syntect
 
 __Objective:__ Add first-class syntax highlighting using Syntect.
@@ -63,13 +61,16 @@ __Objective:__ Add first-class syntax highlighting using Syntect.
 | __✓ Performance__   | Lazy-load themes and syntaxes; use `OnceLock` for caching.                   | `std::sync::OnceLock`   |
 | __✓ Mode__          | Render to ANSI-colored plain text output (for `lantern print`).              | `owo-colors`            |
 
+---
+
 ## Presenter
 
 __Objective:__ Introduce features for live presentations and authoring convenience.
 
 | Task                 | Description                                                   | Key Crates                       |
 | -------------------- | ------------------------------------------------------------- | -------------------------------- |
-| __Speaker Notes__    | `n` toggles speaker notes (parsed via `::: notes`).           | `ratatui`                        |
+| __Speaker Notes__    | `N` toggles speaker notes (parsed via `::: notes`).           | `ratatui`                        |
+|                      | Note: `n` & `p` move forward & backwards                      |                                  |
 | __Timer & Progress__ | Session timer + per-slide progress bar.                       | `ratatui`, `chrono`              |
 | __Live Reload__      | File watcher auto-refreshes content.                          | `notify`[^9]                     |
 | __Search__           | Fuzzy find slide titles via `ctrl+f`.                         | `fuzzy-matcher`[^10]             |
@@ -79,12 +80,13 @@ __Objective:__ Introduce features for live presentations and authoring convenien
 
 __Objective:__ Add richness and visual polish to text and layout.
 
-| Task                 | Description                                                   | Key Crates                    |
-| -------------------- | ------------------------------------------------------------- | ----------------------------- |
-| __Tables & Lists__   | Render GitHub-style tables, bullets, and task lists           | `pulldown-cmark`, `ratatui`   |
-| __Horizontal Rules__ | Use box-drawing (`─`, `═`) and/or black horizontal bar (`▬`)  | Unicode constants             |
-| __Admonitions__      | Highlighted boxes with icons                                  | `owo-colors`, internal glyphs |
-| __Generators__       | `lantern init` scaffolds an example deck with code and notes  | `include_str!`, `fs`          |
+| Task                   | Description                                                   | Key Crates                    |
+| ---------------------- | ------------------------------------------------------------- | ----------------------------- |
+| __✓ Tables & Lists__   | Render GitHub-style tables, bullets, and task lists           | `pulldown-cmark`, `ratatui`   |
+| __✓ Horizontal Rules__ | Use box-drawing (`─`, `═`) and/or black horizontal bar (`▬`)  | Unicode constants             |
+| __Admonitions__        | Highlighted boxes with icons (use `:::` directives)           | `owo-colors`, internal glyphs |
+|                        | Support obsidian & GH admonitions                             |                               |
+| __Generators__         | `lantern init` scaffolds an example deck with code and notes  | `include_str!`, `fs`          |
 
 ## RC
 
@@ -128,7 +130,7 @@ __Objective:__ Produce MP4/WebM/GIF recordings of a scripted terminal+slides run
 | __Frame Capture Loop__        | Drive the same layout/rasterizer used for images at N FPS, yielding a sequence of RGBA frames.                 | `tiny-skia`, `image`                                     |                   |
 | __FFmpeg Binding Layer__      | Wrap `ffmpeg-next` to open an encoder, configure codec/container, and accept raw frames.                       | `ffmpeg-next`                                            |                   |
 | __Video Export CLI__          | `lantern export-video deck.md --output demo.mp4 --fps 30 --duration 120s` (or auto-duration from events).      | `clap`, internal encoder                                 |                   |
-| __GIF / WebM Variants__       | Add `--format gif                                                                                              | webm` mapping to appropriate ffmpeg muxer/codec presets. | `ffmpeg-next`[^7] |
+| __GIF / WebM Variants__       | Add `--format gif                                                                                              | webm mapping to appropriate ffmpeg muxer/codec presets.  | `ffmpeg-next`[^7] |
 | __Typing & Cursor Effects__   | Represent typing, deletes, cursor blinks as timeline events, so video export matches live presentation feel.   | internal `timeline`, terminal core                       |                   |
 | __Audio-less Simplification__ | Keep V1 video export silent (no audio tracks) for simpler ffmpeg integration and smaller binaries.             | `ffmpeg-next`                                            |                   |
 | __Performance Tuning__        | Measure memory/CPU for long decks; stream frames to ffmpeg (no full buffering) and expose `--quality` presets. | `ffmpeg-next`, `image`                                   |                   |

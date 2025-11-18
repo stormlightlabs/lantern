@@ -26,7 +26,11 @@ impl Stylesheet {
 
     fn status_bar(&self) -> Style {
         Style::default()
-            .bg(self.bg_color())
+            .bg(Color::Rgb(
+                self.theme.ui_border.r,
+                self.theme.ui_border.g,
+                self.theme.ui_border.b,
+            ))
             .fg(self.ui_text_color())
             .add_modifier(Modifier::BOLD)
     }
@@ -41,14 +45,6 @@ impl Stylesheet {
 
     fn text_color(&self) -> Color {
         Color::Rgb(self.theme.body.r, self.theme.body.g, self.theme.body.b)
-    }
-
-    fn bg_color(&self) -> Color {
-        Color::Rgb(
-            self.theme.ui_background.r,
-            self.theme.ui_background.g,
-            self.theme.ui_background.b,
-        )
     }
 
     fn ui_text_color(&self) -> Color {
@@ -84,7 +80,7 @@ impl SlideViewer {
             show_notes: false,
             stylesheet: theme.into(),
             filename: None,
-            theme_name: "default".to_string(),
+            theme_name: "oxocarbon-dark".to_string(),
             start_time: None,
         }
     }
@@ -119,10 +115,10 @@ impl SlideViewer {
         }
     }
 
-    /// Jump to a specific slide by index (0-based)
-    pub fn jump_to(&mut self, index: usize) {
-        if index < self.slides.len() {
-            self.current_index = index;
+    /// Jump to a specific slide by number (1-based)
+    pub fn jump_to(&mut self, slide_number: usize) {
+        if slide_number > 0 && slide_number <= self.slides.len() {
+            self.current_index = slide_number - 1;
         }
     }
 
@@ -149,6 +145,11 @@ impl SlideViewer {
     /// Check if speaker notes are visible
     pub fn is_showing_notes(&self) -> bool {
         self.show_notes
+    }
+
+    /// Check if any slides have speaker notes
+    pub fn has_notes(&self) -> bool {
+        self.slides.iter().any(|slide| slide.notes.is_some())
     }
 
     fn theme(&self) -> ThemeColors {
@@ -220,22 +221,53 @@ impl SlideViewer {
             })
             .unwrap_or_default();
 
+        let notes_part = if self.has_notes() {
+            format!(" | [N] Notes {}", if self.show_notes { "✓" } else { "" })
+        } else {
+            String::new()
+        };
+
         let status_text = format!(
-            " {}{}/{} | Theme: {} | [←/→] Navigate | [N] Notes {} | [Q] Quit{} ",
+            " {}{}/{} | Theme: {}{}{} | [?] Help ",
             filename_part,
             self.current_index + 1,
             self.total_slides(),
             self.theme_name,
-            if self.show_notes { "✓" } else { "" },
+            notes_part,
             elapsed
         );
 
+        let width = area.width as usize;
+        let text_len = status_text.chars().count();
+        let padding = if text_len < width { " ".repeat(width - text_len) } else { String::new() };
+
         let status = Paragraph::new(Line::from(vec![Span::styled(
-            status_text,
+            format!("{status_text}{padding}"),
             self.stylesheet.status_bar(),
         )]));
 
         frame.render_widget(status, area);
+    }
+
+    /// Render help line with keybinding reference
+    pub fn render_help_line(&self, frame: &mut Frame, area: Rect) {
+        let help_text = " [j/→/Space] Next | [k/←] Previous | [N] Toggle notes | [Q/Esc] Quit ";
+
+        let width = area.width as usize;
+        let text_len = help_text.chars().count();
+        let padding = if text_len < width { " ".repeat(width - text_len) } else { String::new() };
+
+        let full_text = format!("{}{}", help_text, padding);
+
+        let dimmed_style = Style::default().fg(Color::Rgb(100, 100, 100)).bg(Color::Rgb(
+            self.theme().ui_background.r,
+            self.theme().ui_background.g,
+            self.theme().ui_background.b,
+        ));
+
+        let help_line = Paragraph::new(Line::from(vec![Span::styled(full_text, dimmed_style)]));
+
+        frame.render_widget(help_line, area);
     }
 }
 
@@ -289,7 +321,7 @@ mod tests {
         let slides = create_test_slides();
         let mut viewer = SlideViewer::new(slides, ThemeColors::default());
 
-        viewer.jump_to(2);
+        viewer.jump_to(3);
         assert_eq!(viewer.current_index(), 2);
 
         viewer.previous();
@@ -307,13 +339,16 @@ mod tests {
         let slides = create_test_slides();
         let mut viewer = SlideViewer::new(slides, ThemeColors::default());
 
-        viewer.jump_to(2);
+        viewer.jump_to(3);
         assert_eq!(viewer.current_index(), 2);
 
-        viewer.jump_to(0);
+        viewer.jump_to(1);
         assert_eq!(viewer.current_index(), 0);
 
         viewer.jump_to(10);
+        assert_eq!(viewer.current_index(), 0);
+
+        viewer.jump_to(0);
         assert_eq!(viewer.current_index(), 0);
     }
 
@@ -338,7 +373,7 @@ mod tests {
 
         assert!(viewer.current_slide().is_some());
 
-        viewer.jump_to(1);
+        viewer.jump_to(2);
         let slide = viewer.current_slide().unwrap();
         assert_eq!(slide.blocks.len(), 1);
     }
@@ -370,10 +405,11 @@ mod tests {
     #[test]
     fn viewer_with_context_none_values() {
         let slides = create_test_slides();
-        let viewer = SlideViewer::with_context(slides, ThemeColors::default(), None, "default".to_string(), None);
+        let viewer =
+            SlideViewer::with_context(slides, ThemeColors::default(), None, "oxocarbon-dark".to_string(), None);
 
         assert_eq!(viewer.filename, None);
-        assert_eq!(viewer.theme_name, "default");
+        assert_eq!(viewer.theme_name, "oxocarbon-dark");
         assert_eq!(viewer.start_time, None);
     }
 
@@ -383,7 +419,21 @@ mod tests {
         let viewer = SlideViewer::new(slides, ThemeColors::default());
 
         assert_eq!(viewer.filename, None);
-        assert_eq!(viewer.theme_name, "default");
+        assert_eq!(viewer.theme_name, "oxocarbon-dark");
         assert_eq!(viewer.start_time, None);
+    }
+
+    #[test]
+    fn viewer_has_notes() {
+        let slides_without_notes = create_test_slides();
+        let viewer_no_notes = SlideViewer::new(slides_without_notes, ThemeColors::default());
+        assert!(!viewer_no_notes.has_notes());
+
+        let slides_with_notes = vec![Slide {
+            blocks: vec![Block::Heading { level: 1, spans: vec![TextSpan::plain("Slide with notes")] }],
+            notes: Some("These are speaker notes".to_string()),
+        }];
+        let viewer_with_notes = SlideViewer::new(slides_with_notes, ThemeColors::default());
+        assert!(viewer_with_notes.has_notes());
     }
 }

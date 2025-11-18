@@ -1,3 +1,4 @@
+/// TODO: Add --no-bg flag to present command to allow users to disable background color
 use clap::{Parser, Subcommand};
 use lantern_core::{parser::parse_slides_with_meta, term::Terminal as SlideTerminal, theme::ThemeRegistry};
 use lantern_ui::App;
@@ -67,7 +68,26 @@ enum Commands {
 fn main() {
     let cli = ArgParser::parse();
 
-    tracing_subscriber::fmt().with_max_level(cli.log_level).init();
+    if let Ok(log_path) = std::env::var("LANTERN_LOG_FILE") {
+        let log_file = std::fs::OpenOptions::new()
+            .create(true)
+            .write(true)
+            .truncate(true)
+            .open(&log_path)
+            .unwrap_or_else(|e| panic!("Failed to create log file at {}: {}", log_path, e));
+
+        tracing_subscriber::fmt()
+            .with_max_level(cli.log_level)
+            .with_writer(std::sync::Mutex::new(log_file))
+            .with_ansi(false)
+            .init();
+    } else {
+        tracing_subscriber::fmt()
+            .with_max_level(cli.log_level)
+            .with_writer(std::io::sink)
+            .with_ansi(false)
+            .init();
+    }
 
     match cli.command {
         Commands::Present { file, theme } => {
@@ -76,19 +96,16 @@ fn main() {
                 std::process::exit(1);
             }
         }
-
         Commands::Print { file, width, theme } => {
             if let Err(e) = run_print(&file, width, theme) {
                 eprintln!("Error: {}", e);
                 std::process::exit(1);
             }
         }
-
         Commands::Init { path, name } => {
             tracing::info!("Initializing new deck: {} in {}", name, path.display());
             eprintln!("Init command not yet implemented");
         }
-
         Commands::Check { file, strict, theme } => {
             if let Err(e) = run_check(&file, strict, theme) {
                 eprintln!("Error: {}", e);
@@ -111,8 +128,13 @@ fn run_present(file: &PathBuf, theme_arg: Option<String>) -> io::Result<()> {
         return Err(io::Error::new(io::ErrorKind::InvalidData, "No slides found in file"));
     }
 
-    let theme_name = theme_arg.unwrap_or_else(|| meta.theme.clone());
-    tracing::debug!("Using theme: {}", theme_name);
+    let theme_name = theme_arg.clone().unwrap_or_else(|| meta.theme.clone());
+    tracing::info!(
+        "Theme selection: CLI arg={:?}, frontmatter={}, final={}",
+        theme_arg,
+        meta.theme,
+        theme_name
+    );
 
     let theme = ThemeRegistry::get(&theme_name);
 
@@ -165,10 +187,7 @@ fn run_check(file: &PathBuf, strict: bool, is_theme: bool) -> io::Result<()> {
         }
 
         if !result.is_valid() {
-            return Err(io::Error::new(
-                io::ErrorKind::InvalidData,
-                "Theme validation failed",
-            ));
+            return Err(io::Error::new(io::ErrorKind::InvalidData, "Theme validation failed"));
         }
     } else {
         tracing::info!("Validating slides: {}", file.display());
@@ -195,10 +214,7 @@ fn run_check(file: &PathBuf, strict: bool, is_theme: bool) -> io::Result<()> {
         }
 
         if !result.is_valid() {
-            return Err(io::Error::new(
-                io::ErrorKind::InvalidData,
-                "Slide validation failed",
-            ));
+            return Err(io::Error::new(io::ErrorKind::InvalidData, "Slide validation failed"));
         }
     }
 

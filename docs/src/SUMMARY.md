@@ -8,5 +8,6 @@
 
 # Reference
 
+- [Logging](./logging.md)
 - [Themes](./appendices/themes.md)
 - [Symbols](./appendices/symbols.md)

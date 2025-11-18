@@ -64,15 +64,17 @@ pub enum InputEvent {
     Next,
     /// Move to previous slide
     Previous,
-    /// Jump to specific slide number
-    Jump(usize),
     /// Toggle speaker notes
     ToggleNotes,
+    /// Toggle help display
+    ToggleHelp,
     /// Search slides
+    /// TODO: Implement search functionality
     Search,
     /// Quit presentation
     Quit,
     /// Terminal was resized
+    /// NOTE: Terminal resize is handled automatically by ratatui
     Resize { width: u16, height: u16 },
     /// Unknown/unhandled event
     Other,
@@ -101,15 +103,9 @@ impl InputEvent {
             (KeyCode::Char('c'), KeyModifiers::CONTROL) => Self::Quit,
             (KeyCode::Esc, _) => Self::Quit,
             (KeyCode::Char('n'), KeyModifiers::SHIFT) => Self::ToggleNotes,
+            (KeyCode::Char('?'), _) => Self::ToggleHelp,
             (KeyCode::Char('f'), KeyModifiers::CONTROL) => Self::Search,
             (KeyCode::Char('/'), KeyModifiers::NONE) => Self::Search,
-            (KeyCode::Char(c), KeyModifiers::NONE) if c.is_ascii_digit() => {
-                if let Some(num) = c.to_digit(10) {
-                    Self::Jump(num as usize)
-                } else {
-                    Self::Other
-                }
-            }
             _ => Self::Other,
         }
     }
@@ -154,12 +150,6 @@ mod tests {
     }
 
     #[test]
-    fn input_event_jump() {
-        let jump = InputEvent::from_key(KeyCode::Char('5'), KeyModifiers::NONE);
-        assert_eq!(jump, InputEvent::Jump(5));
-    }
-
-    #[test]
     fn input_event_search() {
         let search_slash = InputEvent::from_key(KeyCode::Char('/'), KeyModifiers::NONE);
         assert_eq!(search_slash, InputEvent::Search);
@@ -172,6 +162,15 @@ mod tests {
     fn input_event_resize() {
         let resize = InputEvent::from_crossterm(Event::Resize(80, 24));
         assert_eq!(resize, InputEvent::Resize { width: 80, height: 24 });
+    }
+
+    #[test]
+    fn input_event_toggle_help() {
+        let help = InputEvent::from_key(KeyCode::Char('?'), KeyModifiers::NONE);
+        assert_eq!(help, InputEvent::ToggleHelp);
+
+        let help_shift = InputEvent::from_key(KeyCode::Char('?'), KeyModifiers::SHIFT);
+        assert_eq!(help_shift, InputEvent::ToggleHelp);
     }
 
     #[test]

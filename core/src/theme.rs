@@ -1,6 +1,6 @@
 use owo_colors::{OwoColorize, Style};
 use serde::Deserialize;
-use terminal_colorsaurus::{QueryOptions, background_color};
+use terminal_colorsaurus::{QueryOptions, ThemeMode, theme_mode};
 
 /// Parses a hex color string to RGB values.
 ///
@@ -107,18 +107,19 @@ impl From<&Color> for Style {
 
 /// Detects if the terminal background is dark.
 ///
-/// Uses [terminal_colorsaurus] to query the terminal background color.
+/// Uses [terminal_colorsaurus] to query the terminal theme mode.
 /// Defaults to true (dark) if detection fails.
 pub fn detect_is_dark() -> bool {
-    match background_color(QueryOptions::default()) {
-        Ok(color) => {
-            let r = color.r as f32 / 255.0;
-            let g = color.g as f32 / 255.0;
-            let b = color.b as f32 / 255.0;
-            let luminance = 0.2126 * r + 0.7152 * g + 0.0722 * b;
-            luminance < 0.5
+    match theme_mode(QueryOptions::default()) {
+        Ok(mode) => {
+            let is_dark = mode == ThemeMode::Dark;
+            tracing::debug!("Terminal theme detection: mode={:?} -> is_dark={}", mode, is_dark);
+            is_dark
         }
-        Err(_) => true,
+        Err(e) => {
+            tracing::debug!("Terminal theme detection failed: {}, defaulting to dark", e);
+            true
+        }
     }
 }
 
@@ -151,7 +152,8 @@ pub struct ThemeColors {
 impl Default for ThemeColors {
     fn default() -> Self {
         let is_dark = detect_is_dark();
-        let theme_name = if is_dark { "nord" } else { "nord-light" };
+        let theme_name = if is_dark { "oxocarbon-dark" } else { "oxocarbon-light" };
+        tracing::debug!("ThemeColors::default() selecting theme: {}", theme_name);
         ThemeRegistry::get(theme_name)
     }
 }
@@ -175,9 +177,9 @@ impl ThemeColors {
     ///
     /// UI chrome colors:
     /// - base00: UI background (darkest background)
-    /// - base04: UI borders (dim foreground)
+    /// - base02: UI borders/status bar background (selection background)
     /// - base06: UI titles (bright foreground)
-    /// - base07: UI text (brightest foreground)
+    /// - base05: UI text (default foreground)
     fn from_base16(scheme: &Base16Scheme) -> Option<Self> {
         let palette = &scheme.palette;
 
@@ -196,9 +198,9 @@ impl ThemeColors {
         let link = parse_hex_color(&palette.base0c)?;
         let inline_code_bg = parse_hex_color(&palette.base02)?;
         let ui_background = parse_hex_color(&palette.base00)?;
-        let ui_border = parse_hex_color(&palette.base04)?;
+        let ui_border = parse_hex_color(&palette.base02)?;
         let ui_title = parse_hex_color(&palette.base06)?;
-        let ui_text = parse_hex_color(&palette.base07)?;
+        let ui_text = parse_hex_color(&palette.base05)?;
 
         Some(Self {
             heading: Color::new(heading.0, heading.1, heading.2),
@@ -309,9 +311,14 @@ impl ThemeRegistry {
     /// Get a theme by name.
     ///
     /// Loads and parses the corresponding YAML theme file embedded at compile time.
+    /// "default" maps to oxocarbon-dark or oxocarbon-light based on terminal background detection.
     /// Falls back to Nord theme if the requested theme is not found or parsing fails.
     pub fn get(name: &str) -> ThemeColors {
         let yaml = match name.to_lowercase().as_str() {
+            "default" => {
+                let is_dark = detect_is_dark();
+                if is_dark { OXOCARBON_DARK } else { OXOCARBON_LIGHT }
+            }
             "catppuccin-latte" => CATPPUCCIN_LATTE,
             "catppuccin-mocha" => CATPPUCCIN_MOCHA,
             "gruvbox-material-dark" => GRUVBOX_MATERIAL_DARK,
@@ -481,9 +488,9 @@ palette:
         assert_eq!(theme.link.r, 0); // base0C - #00ffff
         assert_eq!(theme.inline_code_bg.r, 34); // base02 - #222222
         assert_eq!(theme.ui_background.r, 0); // base00 - #000000
-        assert_eq!(theme.ui_border.r, 68); // base04 - #444444
+        assert_eq!(theme.ui_border.r, 34); // base02 - #222222
         assert_eq!(theme.ui_title.r, 102); // base06 - #666666
-        assert_eq!(theme.ui_text.r, 119); // base07 - #777777
+        assert_eq!(theme.ui_text.r, 85); // base05 - #555555
     }
 
     #[test]
@@ -619,12 +626,6 @@ palette:
         assert!(themes.contains(&"solarized-dark"));
         assert!(themes.contains(&"solarized-light"));
         assert_eq!(themes.len(), 10);
-    }
-
-    #[test]
-    fn detect_is_dark_returns_bool() {
-        let result = detect_is_dark();
-        assert!(result || !result);
     }
 
     #[test]

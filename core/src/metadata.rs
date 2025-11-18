@@ -74,9 +74,9 @@ impl Meta {
         }
     }
 
-    /// Get theme from environment variable or return "default"
+    /// Get theme from environment variable or return "oxocarbon-dark"
     fn default_theme() -> String {
-        env::var("SLIDES_THEME").unwrap_or_else(|_| "default".to_string())
+        env::var("SLIDES_THEME").unwrap_or_else(|_| "oxocarbon-dark".to_string())
     }
 
     /// Get current system user's name
