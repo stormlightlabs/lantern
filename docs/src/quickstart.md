@@ -1,18 +1,18 @@
 # Quickstart
 
-Get started with slides-rs in minutes.
+Get started with lantern in minutes.
 
 ## Installation
 
 Currently, you'll need to build from source:
 
 ```bash
-git clone https://github.com/yourusername/slides-rs.git
-cd slides-rs
+git clone https://github.com/yourusername/lantern.git
+cd lantern
 cargo build --release
 ```
 
-The binary will be available at `target/release/slides`.
+The binary will be available at `target/release/lantern`.
 
 ## Creating Your First Deck
 
@@ -46,7 +46,7 @@ A modern terminal-based presentation tool
 
 ```rust
 fn main() {
-    println!("Hello, slides!");
+    println!("Hello, lantern!");
 }
 ```
 
@@ -73,7 +73,7 @@ Questions?
 Run the interactive TUI presenter:
 
 ```bash
-slides present presentation.md
+lantern present presentation.md
 ```
 
 ### Navigation Keys
@@ -89,19 +89,19 @@ slides present presentation.md
 Print all slides to stdout with formatting:
 
 ```bash
-slides print presentation.md
+lantern print presentation.md
 ```
 
 Adjust output width:
 
 ```bash
-slides print presentation.md --width 100
+lantern print presentation.md --width 100
 ```
 
 Use a specific theme:
 
 ```bash
-slides print presentation.md --theme dark
+lantern print presentation.md --theme nord
 ```
 
 ## Slide Separators
@@ -186,8 +186,8 @@ The status bar at the bottom displays:
 Customize defaults with environment variables:
 
 ```bash
-# Set default theme (options: default, dark, light, monokai, dracula, solarized_dark, nord)
-export SLIDES_THEME=dark
+# Set default theme
+export LANTERN_THEME=nord
 
 # Set default author (used if not in frontmatter)
 export USER=YourName

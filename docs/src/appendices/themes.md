@@ -1,6 +1,6 @@
 # Themes
 
-slides.rs uses the [Base16](https://github.com/chriskempson/base16) theming system for customizing the appearance of your presentations. Base16 provides a standardized way to define color schemes that work consistently across dark and light backgrounds.
+lantern uses the [Base16](https://github.com/chriskempson/base16) theming system for customizing the appearance of your presentations. Base16 provides a standardized way to define color schemes that work consistently across dark and light backgrounds.
 
 ## Base16 Color System
 
@@ -27,7 +27,7 @@ Base16 defines 16 semantic colors (base00 through base0F) that serve specific pu
 
 ## Color Mapping
 
-slides.rs maps base16 colors to semantic roles:
+lantern maps base16 colors to semantic roles:
 
 ### Content Colors
 
@@ -51,7 +51,7 @@ slides.rs maps base16 colors to semantic roles:
 
 ## Available Themes
 
-slides.rs includes 10 prebuilt base16 themes, embedded at compile time:
+lantern includes 10 prebuilt base16 themes, embedded at compile time:
 
 ### Catppuccin
 
@@ -109,17 +109,17 @@ theme = "nord"
 Override the theme with the `--theme` flag:
 
 ```bash
-slides present slides.md --theme nord
-slides print slides.md --theme catppuccin-latte
+lantern present presentation.md --theme nord
+lantern print presentation.md --theme catppuccin-latte
 ```
 
 ### Via Environment Variable
 
-Set a default theme using the `SLIDES_THEME` environment variable:
+Set a default theme using the `LANTERN_THEME` environment variable:
 
 ```bash
-export SLIDES_THEME=gruvbox-material-dark
-slides present slides.md
+export LANTERN_THEME=gruvbox-material-dark
+lantern present presentation.md
 ```
 
 ## Theme Priority
@@ -128,7 +128,7 @@ When multiple theme sources are specified, the priority order is:
 
 1. Command line flag (`--theme`)
 2. Frontmatter metadata (`theme:` field)
-3. Environment variable (`SLIDES_THEME`)
+3. Environment variable (`LANTERN_THEME`)
 4. Default theme (nord for dark terminals, nord-light for light terminals)
 
 ## Custom Themes (Coming Soon)

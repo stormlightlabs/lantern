@@ -1,10 +1,10 @@
 [package]
-name = "slides-tui"
+name = "lantern-ui"
 version = "0.1.0"
 edition = "2024"
 
 [dependencies]
 ratatui = "0.29.0"
 crossterm = "0.29.0"
-slides-core = { path = "../core" }
+lantern-core = { path = "../core" }
 owo-colors = "4.2.3"

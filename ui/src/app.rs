@@ -1,5 +1,5 @@
+use lantern_core::{metadata::Meta, slide::Slide, term::InputEvent, theme::ThemeColors};
 use ratatui::{Terminal as RatatuiTerminal, backend::Backend};
-use slides_core::{metadata::Meta, slide::Slide, term::InputEvent, theme::ThemeColors};
 use std::io;
 use std::time::{Duration, Instant};
 
@@ -91,7 +91,7 @@ impl App {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use slides_core::slide::{Block, TextSpan};
+    use lantern_core::slide::{Block, TextSpan};
 
     fn create_test_app() -> App {
         let slides = vec![

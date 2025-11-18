@@ -5,7 +5,7 @@ use ratatui::{
     text::{Line, Span},
     widgets::{Block, Borders, Paragraph, Wrap},
 };
-use slides_core::{slide::Slide, theme::ThemeColors};
+use lantern_core::{slide::Slide, theme::ThemeColors};
 use std::time::Instant;
 
 use crate::renderer::render_slide_content;
@@ -173,7 +173,7 @@ impl SlideViewer {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use slides_core::slide::{Block, TextSpan};
+    use lantern_core::slide::{Block, TextSpan};
 
     fn create_test_slides() -> Vec<Slide> {
         vec![

@@ -2,7 +2,7 @@ use ratatui::{
     style::{Modifier, Style},
     text::{Line, Span, Text},
 };
-use slides_core::{
+use lantern_core::{
     highlighter,
     slide::{Block, CodeBlock, List, Table, TextSpan, TextStyle},
     theme::ThemeColors,
@@ -202,7 +202,7 @@ fn apply_theme_style(theme: &ThemeColors, text_style: &TextStyle, is_heading: bo
 }
 
 /// Convert theme Color to ratatui Style with RGB colors
-fn to_ratatui_style(color: &slides_core::theme::Color, bold: bool) -> Style {
+fn to_ratatui_style(color: &lantern_core::theme::Color, bold: bool) -> Style {
     let mut style = Style::default().fg(ratatui::style::Color::Rgb(color.r, color.g, color.b));
 
     if bold {
@@ -214,7 +214,7 @@ fn to_ratatui_style(color: &slides_core::theme::Color, bold: bool) -> Style {
 
 #[cfg(test)]
 mod tests {
-    use slides_core::slide::ListItem;
+    use lantern_core::slide::ListItem;
 
     use super::*;
 
@@ -275,7 +275,7 @@ mod tests {
 
     #[test]
     fn to_ratatui_style_converts_color() {
-        use slides_core::theme::Color;
+        use lantern_core::theme::Color;
 
         let color = Color::new(255, 128, 64);
         let style = to_ratatui_style(&color, false);
@@ -285,7 +285,7 @@ mod tests {
 
     #[test]
     fn to_ratatui_style_applies_bold() {
-        use slides_core::theme::Color;
+        use lantern_core::theme::Color;
 
         let color = Color::new(100, 150, 200);
         let style = to_ratatui_style(&color, true);
@@ -296,7 +296,7 @@ mod tests {
 
     #[test]
     fn to_ratatui_style_no_bold_when_false() {
-        use slides_core::theme::Color;
+        use lantern_core::theme::Color;
 
         let color = Color::new(100, 150, 200);
         let style = to_ratatui_style(&color, false);

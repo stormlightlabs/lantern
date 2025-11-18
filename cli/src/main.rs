@@ -1,7 +1,7 @@
 use clap::{Parser, Subcommand};
+use lantern_core::{parser::parse_slides_with_meta, term::Terminal as SlideTerminal, theme::ThemeRegistry};
+use lantern_ui::App;
 use ratatui::{Terminal, backend::CrosstermBackend};
-use slides_core::{parser::parse_slides_with_meta, term::Terminal as SlideTerminal, theme::ThemeRegistry};
-use slides_tui::App;
 use std::{io, path::PathBuf};
 use tracing::Level;
 
@@ -158,7 +158,7 @@ fn run_print(file: &PathBuf, width: usize, theme_arg: Option<String>) -> io::Res
 
     let theme = ThemeRegistry::get(&theme_name);
 
-    slides_core::printer::print_slides_to_stdout(&slides, &theme, width)?;
+    lantern_core::printer::print_slides_to_stdout(&slides, &theme, width)?;
 
     Ok(())
 }

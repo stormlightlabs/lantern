@@ -450,6 +450,47 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "4a5f13b858c8d314ee3e8f639011f7ccefe71f97f96e50151fb991f267928e2c"
 
 [[package]]
+name = "lantern-cli"
+version = "0.1.0"
+dependencies = [
+ "clap",
+ "crossterm 0.29.0",
+ "lantern-core",
+ "lantern-ui",
+ "owo-colors",
+ "ratatui",
+ "tracing",
+ "tracing-subscriber",
+]
+
+[[package]]
+name = "lantern-core"
+version = "0.1.0"
+dependencies = [
+ "crossterm 0.29.0",
+ "owo-colors",
+ "pulldown-cmark",
+ "serde",
+ "serde_json",
+ "serde_yml",
+ "syntect",
+ "terminal-colorsaurus",
+ "thiserror",
+ "toml",
+ "tracing",
+]
+
+[[package]]
+name = "lantern-ui"
+version = "0.1.0"
+dependencies = [
+ "crossterm 0.29.0",
+ "lantern-core",
+ "owo-colors",
+ "ratatui",
+]
+
+[[package]]
 name = "lazy_static"
 version = "1.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -914,47 +955,6 @@ name = "simd-adler32"
 version = "0.3.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d66dc143e6b11c1eddc06d5c423cfc97062865baf299914ab64caa38182078fe"
-
-[[package]]
-name = "slides-cli"
-version = "0.1.0"
-dependencies = [
- "clap",
- "crossterm 0.29.0",
- "owo-colors",
- "ratatui",
- "slides-core",
- "slides-tui",
- "tracing",
- "tracing-subscriber",
-]
-
-[[package]]
-name = "slides-core"
-version = "0.1.0"
-dependencies = [
- "crossterm 0.29.0",
- "owo-colors",
- "pulldown-cmark",
- "serde",
- "serde_json",
- "serde_yml",
- "syntect",
- "terminal-colorsaurus",
- "thiserror",
- "toml",
- "tracing",
-]
-
-[[package]]
-name = "slides-tui"
-version = "0.1.0"
-dependencies = [
- "crossterm 0.29.0",
- "owo-colors",
- "ratatui",
- "slides-core",
-]
 
 [[package]]
 name = "smallvec"
