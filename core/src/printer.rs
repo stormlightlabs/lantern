@@ -1,3 +1,4 @@
+use crate::highlighter;
 use crate::slide::{Block, CodeBlock, List, Table, TextSpan, TextStyle};
 use crate::theme::ThemeColors;
 
@@ -76,17 +77,16 @@ fn print_block<W: std::io::Write>(
     Ok(())
 }
 
-/// Print a heading with level-appropriate styling
+/// Print a heading with level-appropriate styling using Unicode block symbols
 fn print_heading<W: std::io::Write>(
     writer: &mut W, level: u8, spans: &[TextSpan], theme: &ThemeColors,
 ) -> std::io::Result<()> {
     let prefix = match level {
-        1 => "# ",
-        2 => "## ",
-        3 => "### ",
-        4 => "#### ",
-        5 => "##### ",
-        _ => "###### ",
+        1 => "▉ ",
+        2 => "▓ ",
+        3 => "▒ ",
+        4 => "░ ",
+        _ => "▌ ",
     };
 
     write!(writer, "{}", theme.heading(&prefix))?;
@@ -144,7 +144,7 @@ fn print_paragraph<W: std::io::Write>(
     Ok(())
 }
 
-/// Print a code block with language tag
+/// Print a code block with syntax highlighting
 fn print_code_block<W: std::io::Write>(
     writer: &mut W, code: &CodeBlock, theme: &ThemeColors, width: usize,
 ) -> std::io::Result<()> {
@@ -154,9 +154,23 @@ fn print_code_block<W: std::io::Write>(
         writeln!(writer, "{}", theme.code_fence(&"```"))?;
     }
 
-    for line in code.code.lines() {
-        let trimmed = if line.len() > width - 4 { &line[..width - 4] } else { line };
-        writeln!(writer, "{}", theme.code(&trimmed))?;
+    let highlighted_lines = highlighter::highlight_code(&code.code, code.language.as_deref(), theme);
+
+    for tokens in highlighted_lines {
+        let mut line_length = 0;
+        for token in tokens {
+            if line_length + token.text.len() > width - 4 {
+                let remaining = (width - 4).saturating_sub(line_length);
+                if remaining > 0 {
+                    let trimmed = &token.text[..remaining.min(token.text.len())];
+                    write!(writer, "{}", token.color.to_owo_color(&trimmed))?;
+                }
+                break;
+            }
+            write!(writer, "{}", token.color.to_owo_color(&token.text))?;
+            line_length += token.text.len();
+        }
+        writeln!(writer)?;
     }
 
     writeln!(writer, "{}", theme.code_fence(&"```"))?;
@@ -409,9 +423,11 @@ mod tests {
 
         let result = print_slides(&mut output, &[slide], &theme, 80);
         assert!(result.is_ok());
+
         let text = String::from_utf8_lossy(&output);
         assert!(text.contains("```rust"));
-        assert!(text.contains("fn main()"));
+        assert!(text.contains("fn") && text.contains("main"));
+        assert!(text.contains("println"));
     }
 
     #[test]

@@ -3,6 +3,7 @@ use ratatui::{
     text::{Line, Span, Text},
 };
 use slides_core::{
+    highlighter,
     slide::{Block, CodeBlock, List, Table, TextSpan, TextStyle},
     theme::ThemeColors,
 };
@@ -30,15 +31,15 @@ pub fn render_slide_content(blocks: &[Block], theme: &ThemeColors) -> Text<'stat
     Text::from(lines)
 }
 
-/// Get heading prefix
+/// Get heading prefix using Unicode block symbols
 fn get_prefix(level: u8) -> &'static str {
     match level {
-        1 => "# ",
-        2 => "## ",
-        3 => "### ",
-        4 => "#### ",
-        5 => "##### ",
-        _ => "###### ",
+        1 => "▉ ", // Large block / heavy fill (U+2589)
+        2 => "▓ ", // Dark shade (U+2593)
+        3 => "▒ ", // Medium shade (U+2592)
+        4 => "░ ", // Light shade (U+2591)
+        5 => "▌ ", // Left half block (U+258C)
+        _ => "▌ ", // Left half block (U+258C) for h6
     }
 }
 
@@ -61,10 +62,9 @@ fn render_paragraph(spans: &[TextSpan], theme: &ThemeColors, lines: &mut Vec<Lin
     lines.push(Line::from(line_spans));
 }
 
-/// Render a code block with monospace styling
+/// Render a code block with syntax highlighting
 fn render_code_block(code: &CodeBlock, theme: &ThemeColors, lines: &mut Vec<Line<'static>>) {
     let fence_style = to_ratatui_style(&theme.code_fence, false);
-    let code_style = to_ratatui_style(&theme.code, false);
 
     if let Some(lang) = &code.language {
         lines.push(Line::from(Span::styled(format!("```{}", lang), fence_style)));
@@ -72,8 +72,15 @@ fn render_code_block(code: &CodeBlock, theme: &ThemeColors, lines: &mut Vec<Line
         lines.push(Line::from(Span::styled("```".to_string(), fence_style)));
     }
 
-    for line in code.code.lines() {
-        lines.push(Line::from(Span::styled(line.to_string(), code_style)));
+    let highlighted_lines = highlighter::highlight_code(&code.code, code.language.as_deref(), theme);
+
+    for tokens in highlighted_lines {
+        let mut line_spans = Vec::new();
+        for token in tokens {
+            let token_style = to_ratatui_style(&token.color, false);
+            line_spans.push(Span::styled(token.text, token_style));
+        }
+        lines.push(Line::from(line_spans));
     }
 
     lines.push(Line::from(Span::styled("```".to_string(), fence_style)));
@@ -273,10 +280,7 @@ mod tests {
         let color = Color::new(255, 128, 64);
         let style = to_ratatui_style(&color, false);
 
-        assert_eq!(
-            style.fg,
-            Some(ratatui::style::Color::Rgb(255, 128, 64))
-        );
+        assert_eq!(style.fg, Some(ratatui::style::Color::Rgb(255, 128, 64)));
     }
 
     #[test]
@@ -286,10 +290,7 @@ mod tests {
         let color = Color::new(100, 150, 200);
         let style = to_ratatui_style(&color, true);
 
-        assert_eq!(
-            style.fg,
-            Some(ratatui::style::Color::Rgb(100, 150, 200))
-        );
+        assert_eq!(style.fg, Some(ratatui::style::Color::Rgb(100, 150, 200)));
         assert!(style.add_modifier.contains(Modifier::BOLD));
     }
 
@@ -306,10 +307,7 @@ mod tests {
     #[test]
     fn render_heading_uses_theme_colors() {
         let theme = ThemeColors::default();
-        let blocks = vec![Block::Heading {
-            level: 1,
-            spans: vec![TextSpan::plain("Colored Heading")],
-        }];
+        let blocks = vec![Block::Heading { level: 1, spans: vec![TextSpan::plain("Colored Heading")] }];
 
         let text = render_slide_content(&blocks, &theme);
         assert!(!text.lines.is_empty());
@@ -334,11 +332,7 @@ mod tests {
         let style = apply_theme_style(&theme, &text_style, false);
         assert_eq!(
             style.fg,
-            Some(ratatui::style::Color::Rgb(
-                theme.code.r,
-                theme.code.g,
-                theme.code.b
-            ))
+            Some(ratatui::style::Color::Rgb(theme.code.r, theme.code.g, theme.code.b))
         );
     }
 }

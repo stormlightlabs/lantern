@@ -1,4 +1,5 @@
 pub mod error;
+pub mod highlighter;
 pub mod metadata;
 pub mod parser;
 pub mod printer;

@@ -13,6 +13,11 @@ impl Color {
     pub const fn new(r: u8, g: u8, b: u8) -> Self {
         Self { r, g, b }
     }
+
+    /// Apply this color to text using owo-colors
+    pub fn to_owo_color<'a, T: OwoColorize>(&self, text: &'a T) -> owo_colors::Styled<&'a T> {
+        text.style(self.into())
+    }
 }
 
 impl From<Color> for Style {
