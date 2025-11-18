@@ -1,37 +1,15 @@
-# Slides
+# lantern
 
 ## Plumbing
 
-__Objective:__ Establish a clean, testable core with `clap` and a minimal `ratatui` loop.
+__Outcome:__ initialize workspace with clap CLI and ratatui terminal setup
 
-| Task                         | Description                                                                    | Key Crates                  |
-| ---------------------------- | ------------------------------------------------------------------------------ | --------------------------- |
-| __✓ Project Scaffolding__    | Initialize workspace with `slides-core`, `slides-cli`, and `slides-ui` crates. | `cargo`, `just`, `clap`     |
-|                              | Use `cargo-generate` and a `justfile` for scripts.                             |                             |
-| __✓ CLI Definition__         | Implement root command `slides` with subcommands:                              | `clap`[^1]                  |
-|                              | • `present` (TUI)                                                              |                             |
-|                              | • `print` (stdout)                                                             |                             |
-|                              | • `init` (scaffold deck)                                                       |                             |
-|                              | • `check` (lint slides).                                                       |                             |
-| __✓ Logging & Colors__       | Integrate structured logs via `tracing`.                                       | `owo-colors`[^2], `tracing` |
-|                              | Use __owo-colors__ for color abstraction (no dynamic dispatch).                |                             |
-| __✓ Terminal & Event Setup__ | Configure alternate screen, raw mode, input loop, resize handler.              | `crossterm`[^3], `ratatui`  |
-| __CI/CD + Tooling__          | Setup `cargo fmt`, `clippy`, `test`, and `cross` matrix CI.                    | GitHub Actions              |
+Scaffolded multi-crate workspace with present, print, init, and check subcommands, integrated structured logging via tracing, and configured alternate screen with crossterm input handling.
 
-## Data Model (Parser & Slides)
+## Data Model
 
-__Objective:__ Parse markdown documents into a rich `Slide` struct.
-
-| Task                     | Description                                                     | Key Crates           |
-| ------------------------ | --------------------------------------------------------------- | -------------------- |
-| __✓ Parser Core__        | Split files on `---` separators.                                | `pulldown-cmark`[^4] |
-|                          | Detect title blocks, lists, and code fences.                    |                      |
-|                          | Represent as `Vec<Slide>`.                                      |                      |
-| __✓ Slide Model__        | Define structs: `Slide`, `Block`, `TextSpan`, `CodeBlock`, etc. | Internal             |
-| __✓ Metadata Parsing__   | Optional front matter (YAML/TOML) for theme, author, etc.       | `serde_yml`[^5]      |
-| __✓ Error & Validation__ | Provide friendly parser errors with file/line info.             | `thiserror`[^6]      |
-| __✓ Basic CLI UX__       | `lantern present file.md` runs full TUI.                        | `clap`               |
-|                          | `lantern print` renders to stdout with width constraint.        |                      |
+__Outcome:__  implement markdown parser with metadata and validation
+Built pulldown-cmark-based parser that splits on --- separators into Vec<Slide>, supports YAML/TOML front matter, and provides friendly error messages with file/line context.
 
 ## Rendering & Navigation
 
@@ -92,7 +70,8 @@ __Objective:__ Add richness and visual polish to text and layout.
 
 | Task                 | Description                                                        | Key Crates                   |
 | -------------------- | ------------------------------------------------------------------ | ---------------------------- |
-| __Config Discovery__ | Read from `$XDG_CONFIG_HOME/slides/config.toml` for defaults.      | `dirs`, `serde`              |
+| __CI/CD + Tooling__  | Setup `cargo fmt`, `clippy`, `test`, and `cross` matrix CI         | GitHub Actions               |
+| __Config Discovery__ | Read from `$XDG_CONFIG_HOME/lantern/config.toml` for defaults      | `dirs`, `serde`              |
 | __Theme Registry__   | Built-in theme manifest (e.g., `onedark`, `solarized`, `plain`).   | Internal                     |
 | __Release__          | Tag `v1.0.0-rc.1` with changelog and binaries for major platforms. | `cargo-dist`, GitHub Actions |
 
@@ -160,12 +139,6 @@ __Objective:__ Make "slides → image/video" a natural extension of your current
 | __Deterministic Seeds__  | Add `--seed` for any animations (typing jitter, cursor blink timing) to keep exports repeatable. | internal `timeline`          |
 | __Preset Profiles__      | Presets like `social-card`, `doc-screenshot`, `talk-demo` mapping to resolution + theme.         | internal profile registry    |
 
-[^1]: <https://docs.rs/clap/latest/clap/>
-[^2]: <https://docs.rs/owo-colors/latest/owo_colors/>
-[^3]: <https://docs.rs/crossterm/latest/crossterm/>
-[^4]: <https://docs.rs/pulldown-cmark/latest/pulldown_cmark/>
-[^5]: <https://docs.rs/serde_yml>
-[^6]: <https://docs.rs/thiserror>
 [^7]: <https://docs.rs/ratatui/latest/ratatui/>
 [^8]: <https://docs.rs/syntect/latest/syntect/>
 [^9]: <https://docs.rs/notify/latest/notify/>

@@ -1,3 +1,5 @@
+use std::str::FromStr;
+
 use serde::{Deserialize, Serialize};
 
 /// A single slide in a presentation
@@ -46,6 +48,8 @@ pub enum Block {
     BlockQuote { blocks: Vec<Block> },
     /// Table
     Table(Table),
+    /// Admonition/alert box with type, optional title, and content
+    Admonition(Admonition),
 }
 
 /// Styled text span within a block
@@ -128,6 +132,75 @@ pub enum Alignment {
     Left,
     Center,
     Right,
+}
+
+/// Admonition type determines styling and icon
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub enum AdmonitionType {
+    Note,
+    Tip,
+    Important,
+    Warning,
+    Caution,
+    Danger,
+    Error,
+    Info,
+    Success,
+    Question,
+    Example,
+    Quote,
+    Abstract,
+    Todo,
+    Bug,
+    Failure,
+}
+
+/// Error type for parsing AdmonitionType
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ParseAdmonitionTypeError;
+
+impl std::fmt::Display for ParseAdmonitionTypeError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "invalid admonition type")
+    }
+}
+
+impl std::error::Error for ParseAdmonitionTypeError {}
+
+impl FromStr for AdmonitionType {
+    type Err = ParseAdmonitionTypeError;
+
+    /// Parse admonition type from string (case-insensitive)
+    ///
+    /// Supports GitHub and Obsidian aliases
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s.to_lowercase().as_str() {
+            "note" => Ok(Self::Note),
+            "tip" | "hint" => Ok(Self::Tip),
+            "important" => Ok(Self::Important),
+            "warning" | "caution" | "attention" => Ok(Self::Warning),
+            "danger" | "error" => Ok(Self::Danger),
+            "info" => Ok(Self::Info),
+            "success" | "check" | "done" => Ok(Self::Success),
+            "question" | "help" | "faq" => Ok(Self::Question),
+            "example" => Ok(Self::Example),
+            "quote" => Ok(Self::Quote),
+            "abstract" | "summary" | "tldr" => Ok(Self::Abstract),
+            "todo" => Ok(Self::Todo),
+            "bug" => Ok(Self::Bug),
+            "failure" | "fail" | "missing" => Ok(Self::Failure),
+            _ => Err(ParseAdmonitionTypeError),
+        }
+    }
+}
+
+/// Admonition/alert box with styled content
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct Admonition {
+    pub admonition_type: AdmonitionType,
+    pub title: Option<String>,
+    pub blocks: Vec<Block>,
 }
 
 #[cfg(test)]

@@ -7,6 +7,7 @@ use ratatui::{
     style::{Modifier, Style},
     text::{Line, Span, Text},
 };
+use unicode_width::UnicodeWidthChar;
 
 /// Render a slide's blocks into ratatui Text
 ///
@@ -23,6 +24,7 @@ pub fn render_slide_content(blocks: &[Block], theme: &ThemeColors) -> Text<'stat
             Block::Rule => render_rule(theme, &mut lines),
             Block::BlockQuote { blocks } => render_blockquote(blocks, theme, &mut lines),
             Block::Table(table) => render_table(table, theme, &mut lines),
+            Block::Admonition(admonition) => render_admonition(admonition, theme, &mut lines),
         }
 
         lines.push(Line::raw(""));
@@ -133,6 +135,96 @@ fn render_blockquote(blocks: &[Block], theme: &ThemeColors, lines: &mut Vec<Line
             lines.push(Line::from(line_spans));
         }
     }
+}
+
+/// Render an admonition with colored border and icon
+fn render_admonition(
+    admonition: &lantern_core::slide::Admonition, theme: &ThemeColors, lines: &mut Vec<Line<'static>>,
+) {
+    use lantern_core::slide::AdmonitionType;
+
+    let (icon, color, default_title) = match admonition.admonition_type {
+        AdmonitionType::Note => ("\u{24D8}", &theme.admonition_note, "Note"),
+        AdmonitionType::Tip => ("\u{1F4A1}", &theme.admonition_tip, "Tip"),
+        AdmonitionType::Important => ("\u{2757}", &theme.admonition_tip, "Important"),
+        AdmonitionType::Warning => ("\u{26A0}", &theme.admonition_warning, "Warning"),
+        AdmonitionType::Caution => ("\u{26A0}", &theme.admonition_warning, "Caution"),
+        AdmonitionType::Danger => ("\u{26D4}", &theme.admonition_danger, "Danger"),
+        AdmonitionType::Error => ("\u{2717}", &theme.admonition_danger, "Error"),
+        AdmonitionType::Info => ("\u{24D8}", &theme.admonition_info, "Info"),
+        AdmonitionType::Success => ("\u{2713}", &theme.admonition_success, "Success"),
+        AdmonitionType::Question => ("?", &theme.admonition_info, "Question"),
+        AdmonitionType::Example => ("\u{25B8}", &theme.admonition_success, "Example"),
+        AdmonitionType::Quote => ("\u{201C}", &theme.admonition_info, "Quote"),
+        AdmonitionType::Abstract => ("\u{00A7}", &theme.admonition_note, "Abstract"),
+        AdmonitionType::Todo => ("\u{2610}", &theme.admonition_info, "Todo"),
+        AdmonitionType::Bug => ("\u{1F41B}", &theme.admonition_danger, "Bug"),
+        AdmonitionType::Failure => ("\u{2717}", &theme.admonition_danger, "Failure"),
+    };
+
+    let title = admonition.title.as_deref().unwrap_or(default_title);
+    let color_style = to_ratatui_style(color, false);
+    let bold_color_style = to_ratatui_style(color, true);
+
+    let top_border = format!("\u{256D}{}\u{256E}", "\u{2500}".repeat(58));
+    lines.push(Line::from(Span::styled(top_border, color_style)));
+
+    let icon_display_width = icon.chars().next().and_then(|c| c.width()).unwrap_or(1);
+
+    let title_line = vec![
+        Span::styled("\u{2502} ".to_string(), color_style),
+        Span::raw(format!("{icon} ")),
+        Span::styled(title.to_string(), bold_color_style),
+        Span::styled(
+            " ".repeat(56_usize.saturating_sub(icon_display_width + 1 + title.len())),
+            color_style,
+        ),
+        Span::styled(" \u{2502}".to_string(), color_style),
+    ];
+    lines.push(Line::from(title_line));
+
+    if !admonition.blocks.is_empty() {
+        let separator = format!("\u{251C}{}\u{2524}", "\u{2500}".repeat(58));
+        lines.push(Line::from(Span::styled(separator, color_style)));
+
+        for block in &admonition.blocks {
+            if let Block::Paragraph { spans } = block {
+                let text: String = spans.iter().map(|s| s.text.as_str()).collect();
+                let words: Vec<&str> = text.split_whitespace().collect();
+                let content_width = 56; // 60 total - 2 for borders - 2 for spaces
+
+                let mut current_line = String::new();
+                for word in words {
+                    if current_line.is_empty() {
+                        current_line = word.to_string();
+                    } else if current_line.len() + 1 + word.len() <= content_width {
+                        current_line.push(' ');
+                        current_line.push_str(word);
+                    } else {
+                        let mut line_spans = vec![Span::styled("\u{2502} ".to_string(), color_style)];
+                        line_spans.push(Span::raw(current_line.clone()));
+                        let padding = content_width.saturating_sub(current_line.len());
+                        line_spans.push(Span::raw(" ".repeat(padding)));
+                        line_spans.push(Span::styled(" \u{2502}".to_string(), color_style));
+                        lines.push(Line::from(line_spans));
+                        current_line = word.to_string();
+                    }
+                }
+
+                if !current_line.is_empty() {
+                    let mut line_spans = vec![Span::styled("\u{2502} ".to_string(), color_style)];
+                    line_spans.push(Span::raw(current_line.clone()));
+                    let padding = content_width.saturating_sub(current_line.len());
+                    line_spans.push(Span::raw(" ".repeat(padding)));
+                    line_spans.push(Span::styled(" \u{2502}".to_string(), color_style));
+                    lines.push(Line::from(line_spans));
+                }
+            }
+        }
+    }
+
+    let bottom_border = format!("\u{2570}{}\u{256F}", "\u{2500}".repeat(58));
+    lines.push(Line::from(Span::styled(bottom_border, color_style)));
 }
 
 /// Render a table with basic formatting

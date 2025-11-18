@@ -66,6 +66,9 @@ mutable = 4;
 mutable += 2;
 ```
 
+> [!TIP]
+> Variables are immutable by default - use `mut` only when you need to change values
+
 ---
 
 ## Numbers
@@ -405,13 +408,17 @@ ref_var2; // Use ends here
 // Now var2 can be used again
 ```
 
-**Key rule:** Either many immutable references OR one mutable reference.
+> [!WARNING]
+> Only ONE mutable reference OR many immutable references at a time
 
 ---
 
 ## Memory Safety
 
-Rust's borrow checker ensures:
+> [!IMPORTANT]
+> Rust's borrow checker ensures memory safety at compile time
+
+Guarantees:
 
 - No use after free
 - No double free

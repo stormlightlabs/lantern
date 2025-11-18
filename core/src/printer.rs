@@ -1,6 +1,8 @@
 use crate::highlighter;
 use crate::slide::{Block, CodeBlock, List, Table, TextSpan, TextStyle};
 use crate::theme::ThemeColors;
+use owo_colors::OwoColorize;
+use unicode_width::UnicodeWidthChar;
 
 /// Print slides to stdout with formatted output
 ///
@@ -71,6 +73,9 @@ fn print_block<W: std::io::Write>(
         }
         Block::Table(table) => {
             print_table(writer, table, theme, width)?;
+        }
+        Block::Admonition(admonition) => {
+            print_admonition(writer, admonition, theme, width, indent)?;
         }
     }
 
@@ -221,6 +226,110 @@ fn print_blockquote<W: std::io::Write>(
                 print_block(writer, block, theme, width, indent + 2)?;
             }
         }
+    }
+
+    Ok(())
+}
+
+/// Print an admonition with icon, colored border, and title
+fn print_admonition<W: std::io::Write>(
+    writer: &mut W, admonition: &crate::slide::Admonition, theme: &ThemeColors, width: usize, indent: usize,
+) -> std::io::Result<()> {
+    use crate::slide::AdmonitionType;
+
+    let (icon, color, default_title) = match admonition.admonition_type {
+        AdmonitionType::Note => ("\u{24D8}", &theme.admonition_note, "Note"),
+        AdmonitionType::Tip => ("\u{1F4A1}", &theme.admonition_tip, "Tip"),
+        AdmonitionType::Important => ("\u{2757}", &theme.admonition_tip, "Important"),
+        AdmonitionType::Warning => ("\u{26A0}", &theme.admonition_warning, "Warning"),
+        AdmonitionType::Caution => ("\u{26A0}", &theme.admonition_warning, "Caution"),
+        AdmonitionType::Danger => ("\u{26D4}", &theme.admonition_danger, "Danger"),
+        AdmonitionType::Error => ("\u{2717}", &theme.admonition_danger, "Error"),
+        AdmonitionType::Info => ("\u{24D8}", &theme.admonition_info, "Info"),
+        AdmonitionType::Success => ("\u{2713}", &theme.admonition_success, "Success"),
+        AdmonitionType::Question => ("?", &theme.admonition_info, "Question"),
+        AdmonitionType::Example => ("\u{25B8}", &theme.admonition_success, "Example"),
+        AdmonitionType::Quote => ("\u{201C}", &theme.admonition_info, "Quote"),
+        AdmonitionType::Abstract => ("\u{00A7}", &theme.admonition_note, "Abstract"),
+        AdmonitionType::Todo => ("\u{2610}", &theme.admonition_info, "Todo"),
+        AdmonitionType::Bug => ("\u{1F41B}", &theme.admonition_danger, "Bug"),
+        AdmonitionType::Failure => ("\u{2717}", &theme.admonition_danger, "Failure"),
+    };
+
+    let title = admonition.title.as_deref().unwrap_or(default_title);
+    let indent_str = " ".repeat(indent);
+    let box_width = width.saturating_sub(indent);
+
+    let top_border = "\u{256D}".to_string() + &"\u{2500}".repeat(box_width.saturating_sub(2)) + "\u{256E}";
+    writeln!(writer, "{}{}", indent_str, color.to_owo_color(&top_border))?;
+
+    let icon_display_width = icon.chars().next().and_then(|c| c.width()).unwrap_or(1);
+
+    write!(writer, "{}{} ", indent_str, color.to_owo_color(&"\u{2502}"))?;
+    write!(writer, "{icon} ")?;
+    write!(writer, "{}", color.to_owo_color(&title).bold())?;
+
+    let title_padding = box_width.saturating_sub(4 + icon_display_width + 1 + title.len());
+    write!(writer, "{}", " ".repeat(title_padding))?;
+    writeln!(writer, " {}", color.to_owo_color(&"\u{2502}"))?;
+
+    if !admonition.blocks.is_empty() {
+        let separator = "\u{251C}".to_string() + &"\u{2500}".repeat(box_width.saturating_sub(2)) + "\u{2524}";
+        writeln!(writer, "{}{}", indent_str, color.to_owo_color(&separator))?;
+
+        for block in &admonition.blocks {
+            match block {
+                Block::Paragraph { spans } => {
+                    print_wrapped_admonition_paragraph(writer, spans, theme, color, &indent_str, box_width)?;
+                }
+                _ => {
+                    write!(writer, "{}{} ", indent_str, color.to_owo_color(&"\u{2502}"))?;
+                    print_block(writer, block, theme, box_width.saturating_sub(4), indent + 2)?;
+                    writeln!(writer, "{}", color.to_owo_color(&"\u{2502}"))?;
+                }
+            }
+        }
+    }
+
+    let bottom_border = "\u{2570}".to_string() + &"\u{2500}".repeat(box_width.saturating_sub(2)) + "\u{256F}";
+    writeln!(writer, "{}{}", indent_str, color.to_owo_color(&bottom_border))?;
+
+    Ok(())
+}
+
+/// Print a wrapped paragraph inside an admonition with proper text wrapping
+fn print_wrapped_admonition_paragraph<W: std::io::Write>(
+    writer: &mut W, spans: &[TextSpan], theme: &ThemeColors, border_color: &crate::theme::Color, indent_str: &str,
+    box_width: usize,
+) -> std::io::Result<()> {
+    let text = spans.iter().map(|s| s.text.as_str()).collect::<Vec<_>>().join("");
+    let words: Vec<&str> = text.split_whitespace().collect();
+
+    let content_width = box_width.saturating_sub(4);
+    let mut current_line = String::new();
+
+    for word in words {
+        if current_line.is_empty() {
+            current_line = word.to_string();
+        } else if current_line.len() + 1 + word.len() <= content_width {
+            current_line.push(' ');
+            current_line.push_str(word);
+        } else {
+            write!(writer, "{}{} ", indent_str, border_color.to_owo_color(&"\u{2502}"))?;
+            write!(writer, "{}", theme.body(&current_line))?;
+            let padding = content_width.saturating_sub(current_line.len());
+            write!(writer, "{}", " ".repeat(padding))?;
+            writeln!(writer, "{}", border_color.to_owo_color(&"\u{2502}"))?;
+            current_line = word.to_string();
+        }
+    }
+
+    if !current_line.is_empty() {
+        write!(writer, "{}{} ", indent_str, border_color.to_owo_color(&"\u{2502}"))?;
+        write!(writer, "{}", theme.body(&current_line))?;
+        let padding = content_width.saturating_sub(current_line.len());
+        write!(writer, "{}", " ".repeat(padding))?;
+        writeln!(writer, "{}", border_color.to_owo_color(&"\u{2502}"))?;
     }
 
     Ok(())
@@ -547,5 +656,119 @@ mod tests {
 
         assert!(separator.contains("─┼─"));
         assert!(separator.contains("─"));
+    }
+
+    #[test]
+    fn print_admonition_with_wrapping() {
+        use crate::slide::{Admonition, AdmonitionType};
+
+        let admonition = Admonition {
+            admonition_type: AdmonitionType::Tip,
+            title: Some("Tip".to_string()),
+            blocks: vec![Block::Paragraph {
+                spans: vec![TextSpan::plain(
+                    "Variables are immutable by default - use mut only when you need to change values",
+                )],
+            }],
+        };
+
+        let slide = Slide::with_blocks(vec![Block::Admonition(admonition)]);
+        let theme = ThemeColors::default();
+        let mut output = Vec::new();
+
+        let result = print_slides(&mut output, &[slide], &theme, 80);
+        assert!(result.is_ok());
+
+        let text = String::from_utf8_lossy(&output);
+        assert!(text.contains("Tip"));
+        assert!(text.contains("Variables are immutable"));
+        assert!(text.contains("mut"));
+        assert!(text.contains("╭") && text.contains("╮"));
+        assert!(text.contains("├") && text.contains("┤"));
+        assert!(text.contains("╰") && text.contains("╯"));
+        assert!(text.contains("│"));
+    }
+
+    #[test]
+    fn print_admonition_border_length() {
+        use crate::slide::{Admonition, AdmonitionType};
+
+        let admonition = Admonition {
+            admonition_type: AdmonitionType::Note,
+            title: None,
+            blocks: vec![Block::Paragraph { spans: vec![TextSpan::plain("Test content")] }],
+        };
+
+        let slide = Slide::with_blocks(vec![Block::Admonition(admonition)]);
+        let theme = ThemeColors::default();
+        let mut output = Vec::new();
+
+        let width = 60;
+        let result = print_slides(&mut output, &[slide], &theme, width);
+        assert!(result.is_ok());
+
+        let text = String::from_utf8_lossy(&output);
+        let lines: Vec<&str> = text.lines().collect();
+
+        for line in &lines {
+            if line.contains("╭") || line.contains("├") || line.contains("╰") {
+                let stripped = strip_ansi_codes(line);
+                let visible_len = stripped.chars().count();
+                assert!(
+                    visible_len <= width,
+                    "Border line too long: {visible_len} chars (max {width})\nLine: {stripped}"
+                );
+            }
+        }
+    }
+
+    fn strip_ansi_codes(s: &str) -> String {
+        let mut result = String::new();
+        let mut chars = s.chars().peekable();
+
+        while let Some(c) = chars.next() {
+            if c == '\x1b' {
+                if chars.peek() == Some(&'[') {
+                    chars.next();
+                    for ch in chars.by_ref() {
+                        if ch.is_ascii_alphabetic() {
+                            break;
+                        }
+                    }
+                }
+            } else {
+                result.push(c);
+            }
+        }
+
+        result
+    }
+
+    #[test]
+    fn print_admonition_wraps_long_text() {
+        use crate::slide::{Admonition, AdmonitionType};
+
+        let long_text = "This is a very long text that should definitely wrap across multiple lines when rendered in a narrow width to ensure readability and proper formatting";
+
+        let admonition = Admonition {
+            admonition_type: AdmonitionType::Warning,
+            title: Some("Warning".to_string()),
+            blocks: vec![Block::Paragraph { spans: vec![TextSpan::plain(long_text)] }],
+        };
+
+        let slide = Slide::with_blocks(vec![Block::Admonition(admonition)]);
+        let theme = ThemeColors::default();
+        let mut output = Vec::new();
+
+        let result = print_slides(&mut output, &[slide], &theme, 50);
+        assert!(result.is_ok());
+
+        let text = String::from_utf8_lossy(&output);
+        let content_lines: Vec<&str> = text
+            .lines()
+            .filter(|line| line.contains("│") && !line.contains("╭") && !line.contains("├") && !line.contains("╰"))
+            .collect();
+
+        assert!(content_lines.len() > 2, "Long text should wrap to multiple lines");
     }
 }

@@ -80,7 +80,6 @@ lantern present presentation.md
 
 - `→`, `j`, `Space`, `n` - Next slide
 - `←`, `k`, `p` - Previous slide
-- `0-9` - Jump to slide (single digit)
 - `Shift+N` - Toggle speaker notes
 - `q`, `Ctrl+C`, `Esc` - Quit presentation
 

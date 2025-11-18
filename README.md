@@ -65,12 +65,11 @@ lantern present presentation.md --theme catppuccin-mocha
 
 ### Navigation
 
-| Key          | Action              |
-| ------------ | ------------------- |
+| Key           | Action              |
+| ------------- | ------------------- |
 | `→`, `j`, `n` | Next slide          |
 | `←`, `k`, `p` | Previous slide      |
-| `1-9`        | Jump to slide       |
-| `q`          | Quit                |
+| `q`           | Quit                |
 
 ## Design Principles
 

@@ -204,6 +204,12 @@ mod tests {
             ui_title: Color::new(200, 200, 200),
             ui_text: Color::new(220, 220, 220),
             ui_background: Color::new(30, 30, 30),
+            admonition_note: Color::new(100, 150, 200),
+            admonition_tip: Color::new(150, 100, 200),
+            admonition_warning: Color::new(200, 150, 50),
+            admonition_danger: Color::new(200, 50, 50),
+            admonition_success: Color::new(50, 200, 100),
+            admonition_info: Color::new(100, 200, 200),
         };
 
         assert!(is_dark_theme(&dark_theme));
@@ -231,6 +237,12 @@ mod tests {
             ui_title: Color::new(40, 40, 40),
             ui_text: Color::new(20, 20, 20),
             ui_background: Color::new(250, 250, 250),
+            admonition_note: Color::new(0, 100, 200),
+            admonition_tip: Color::new(100, 0, 200),
+            admonition_warning: Color::new(200, 100, 0),
+            admonition_danger: Color::new(200, 0, 0),
+            admonition_success: Color::new(0, 150, 50),
+            admonition_info: Color::new(0, 150, 200),
         };
 
         assert!(!is_dark_theme(&light_theme));

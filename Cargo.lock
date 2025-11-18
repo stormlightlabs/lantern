@@ -478,6 +478,7 @@ dependencies = [
  "thiserror",
  "toml",
  "tracing",
+ "unicode-width 0.2.0",
 ]
 
 [[package]]
@@ -488,6 +489,7 @@ dependencies = [
  "lantern-core",
  "owo-colors",
  "ratatui",
+ "unicode-width 0.2.0",
 ]
 
 [[package]]

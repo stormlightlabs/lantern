@@ -147,6 +147,12 @@ pub struct ThemeColors {
     pub ui_title: Color,
     pub ui_text: Color,
     pub ui_background: Color,
+    pub admonition_note: Color,
+    pub admonition_tip: Color,
+    pub admonition_warning: Color,
+    pub admonition_danger: Color,
+    pub admonition_success: Color,
+    pub admonition_info: Color,
 }
 
 impl Default for ThemeColors {
@@ -202,6 +208,13 @@ impl ThemeColors {
         let ui_title = parse_hex_color(&palette.base06)?;
         let ui_text = parse_hex_color(&palette.base05)?;
 
+        let admonition_note = parse_hex_color(&palette.base0d)?;
+        let admonition_tip = parse_hex_color(&palette.base0e)?;
+        let admonition_warning = parse_hex_color(&palette.base0a)?;
+        let admonition_danger = parse_hex_color(&palette.base08)?;
+        let admonition_success = parse_hex_color(&palette.base0b)?;
+        let admonition_info = parse_hex_color(&palette.base0c)?;
+
         Some(Self {
             heading: Color::new(heading.0, heading.1, heading.2),
             heading_bold: true,
@@ -222,6 +235,12 @@ impl ThemeColors {
             ui_title: Color::new(ui_title.0, ui_title.1, ui_title.2),
             ui_text: Color::new(ui_text.0, ui_text.1, ui_text.2),
             ui_background: Color::new(ui_background.0, ui_background.1, ui_background.2),
+            admonition_note: Color::new(admonition_note.0, admonition_note.1, admonition_note.2),
+            admonition_tip: Color::new(admonition_tip.0, admonition_tip.1, admonition_tip.2),
+            admonition_warning: Color::new(admonition_warning.0, admonition_warning.1, admonition_warning.2),
+            admonition_danger: Color::new(admonition_danger.0, admonition_danger.1, admonition_danger.2),
+            admonition_success: Color::new(admonition_success.0, admonition_success.1, admonition_success.2),
+            admonition_info: Color::new(admonition_info.0, admonition_info.1, admonition_info.2),
         })
     }
 

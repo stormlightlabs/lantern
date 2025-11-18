@@ -1,9 +1,11 @@
+use crossterm::event::{self, Event, KeyCode, KeyEvent, KeyModifiers};
+use std::{io, time::Duration};
+
+#[cfg(not(test))]
 use crossterm::{
-    event::{self, Event, KeyCode, KeyEvent, KeyModifiers},
     execute,
     terminal::{EnterAlternateScreen, LeaveAlternateScreen, disable_raw_mode, enable_raw_mode},
 };
-use std::{io, time::Duration};
 
 /// Terminal manager that handles setup and cleanup
 ///
@@ -25,9 +27,12 @@ impl Terminal {
     ///
     /// Enables alternate screen and raw mode for full terminal control.
     pub fn setup() -> io::Result<Self> {
-        let mut stdout = io::stdout();
-        execute!(stdout, EnterAlternateScreen)?;
-        enable_raw_mode()?;
+        #[cfg(not(test))]
+        {
+            let mut stdout = io::stdout();
+            execute!(stdout, EnterAlternateScreen)?;
+            enable_raw_mode()?;
+        }
 
         Ok(Self::default())
     }
@@ -36,14 +41,23 @@ impl Terminal {
     ///
     /// Called automatically on drop, but can be called manually for explicit cleanup.
     pub fn restore(&mut self) -> io::Result<()> {
-        if self.in_raw_mode {
-            disable_raw_mode()?;
-            self.in_raw_mode = false;
+        #[cfg(not(test))]
+        {
+            if self.in_raw_mode {
+                disable_raw_mode()?;
+                self.in_raw_mode = false;
+            }
+
+            if self.in_alternate_screen {
+                let mut stdout = io::stdout();
+                execute!(stdout, LeaveAlternateScreen)?;
+                self.in_alternate_screen = false;
+            }
         }
 
-        if self.in_alternate_screen {
-            let mut stdout = io::stdout();
-            execute!(stdout, LeaveAlternateScreen)?;
+        #[cfg(test)]
+        {
+            self.in_raw_mode = false;
             self.in_alternate_screen = false;
         }
 
