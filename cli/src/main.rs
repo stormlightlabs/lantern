@@ -58,6 +58,9 @@ enum Commands {
         /// Enable strict mode with additional checks
         #[arg(short, long)]
         strict: bool,
+        /// Validate file as a theme instead of slides
+        #[arg(short, long)]
+        theme: bool,
     },
 }
 
@@ -86,12 +89,11 @@ fn main() {
             eprintln!("Init command not yet implemented");
         }
 
-        Commands::Check { file, strict } => {
-            tracing::info!("Checking slides: {}", file.display());
-            if strict {
-                tracing::debug!("Strict mode enabled");
+        Commands::Check { file, strict, theme } => {
+            if let Err(e) = run_check(&file, strict, theme) {
+                eprintln!("Error: {}", e);
+                std::process::exit(1);
             }
-            eprintln!("Check command not yet implemented");
         }
     }
 }
@@ -138,6 +140,69 @@ fn run_present(file: &PathBuf, theme_arg: Option<String>) -> io::Result<()> {
     slide_terminal.restore()?;
 
     result
+}
+
+fn run_check(file: &PathBuf, strict: bool, is_theme: bool) -> io::Result<()> {
+    use lantern_core::validator::{validate_slides, validate_theme_file};
+    use owo_colors::OwoColorize;
+
+    if is_theme {
+        tracing::info!("Validating theme file: {}", file.display());
+        let result = validate_theme_file(file);
+
+        if result.is_valid() {
+            println!("{} Theme is valid", "✓".green().bold());
+        } else {
+            println!("{} Theme validation failed", "✗".red().bold());
+        }
+
+        for error in &result.errors {
+            println!("  {} {}", "Error:".red().bold(), error);
+        }
+
+        for warning in &result.warnings {
+            println!("  {} {}", "Warning:".yellow().bold(), warning);
+        }
+
+        if !result.is_valid() {
+            return Err(io::Error::new(
+                io::ErrorKind::InvalidData,
+                "Theme validation failed",
+            ));
+        }
+    } else {
+        tracing::info!("Validating slides: {}", file.display());
+        if strict {
+            tracing::debug!("Strict mode enabled");
+        }
+
+        let result = validate_slides(file, strict);
+
+        if result.is_valid() && !result.has_issues() {
+            println!("{} Slides are valid", "✓".green().bold());
+        } else if result.is_valid() {
+            println!("{} Slides are valid (with warnings)", "✓".yellow().bold());
+        } else {
+            println!("{} Slide validation failed", "✗".red().bold());
+        }
+
+        for error in &result.errors {
+            println!("  {} {}", "Error:".red().bold(), error);
+        }
+
+        for warning in &result.warnings {
+            println!("  {} {}", "Warning:".yellow().bold(), warning);
+        }
+
+        if !result.is_valid() {
+            return Err(io::Error::new(
+                io::ErrorKind::InvalidData,
+                "Slide validation failed",
+            ));
+        }
+    }
+
+    Ok(())
 }
 
 fn run_print(file: &PathBuf, width: usize, theme_arg: Option<String>) -> io::Result<()> {
@@ -220,9 +285,23 @@ mod tests {
     fn cli_check_command() {
         let cli = ArgParser::parse_from(["slides", "check", "test.md", "--strict"]);
         match cli.command {
-            Commands::Check { file, strict } => {
+            Commands::Check { file, strict, theme } => {
                 assert_eq!(file, PathBuf::from("test.md"));
                 assert!(strict);
+                assert!(!theme);
+            }
+            _ => panic!("Expected Check command"),
+        }
+    }
+
+    #[test]
+    fn cli_check_theme_command() {
+        let cli = ArgParser::parse_from(["slides", "check", "theme.yml", "--theme"]);
+        match cli.command {
+            Commands::Check { file, strict, theme } => {
+                assert_eq!(file, PathBuf::from("theme.yml"));
+                assert!(!strict);
+                assert!(theme);
             }
             _ => panic!("Expected Check command"),
         }
@@ -286,6 +365,113 @@ mod tests {
 
         let result = run_print(&test_file, 80, Some("monokai".to_string()));
         assert!(result.is_ok());
+
+        std::fs::remove_file(&test_file).ok();
+    }
+
+    #[test]
+    fn run_check_valid_slides() {
+        let temp_dir = std::env::temp_dir();
+        let test_file = temp_dir.join("test_check_valid.md");
+        let content = "# Test Slide\n\nThis is a test paragraph.";
+        std::fs::write(&test_file, content).expect("Failed to write test file");
+
+        let result = run_check(&test_file, false, false);
+        assert!(result.is_ok());
+
+        std::fs::remove_file(&test_file).ok();
+    }
+
+    #[test]
+    fn run_check_invalid_slides() {
+        let temp_dir = std::env::temp_dir();
+        let test_file = temp_dir.join("test_check_invalid.md");
+        let content = "";
+        std::fs::write(&test_file, content).expect("Failed to write test file");
+
+        let result = run_check(&test_file, false, false);
+        assert!(result.is_err());
+
+        std::fs::remove_file(&test_file).ok();
+    }
+
+    #[test]
+    fn run_check_nonexistent_file() {
+        let test_file = PathBuf::from("/nonexistent/test_check.md");
+        let result = run_check(&test_file, false, false);
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn run_check_strict_mode() {
+        let temp_dir = std::env::temp_dir();
+        let test_file = temp_dir.join("test_check_strict.md");
+        let content = "---\ntheme: nonexistent-theme\n---\n# Slide 1\n\nContent";
+        std::fs::write(&test_file, content).expect("Failed to write test file");
+
+        let result = run_check(&test_file, true, false);
+        assert!(result.is_ok());
+
+        std::fs::remove_file(&test_file).ok();
+    }
+
+    #[test]
+    fn run_check_valid_theme() {
+        let temp_dir = std::env::temp_dir();
+        let test_file = temp_dir.join("test_check_valid_theme.yml");
+        let content = r###"
+system: "base16"
+name: "Test Theme"
+author: "Test Author"
+variant: "dark"
+palette:
+  base00: "#000000"
+  base01: "#111111"
+  base02: "#222222"
+  base03: "#333333"
+  base04: "#444444"
+  base05: "#555555"
+  base06: "#666666"
+  base07: "#777777"
+  base08: "#888888"
+  base09: "#999999"
+  base0A: "#aaaaaa"
+  base0B: "#bbbbbb"
+  base0C: "#cccccc"
+  base0D: "#dddddd"
+  base0E: "#eeeeee"
+  base0F: "#ffffff"
+"###;
+        std::fs::write(&test_file, content).expect("Failed to write test file");
+
+        let result = run_check(&test_file, false, true);
+        assert!(result.is_ok());
+
+        std::fs::remove_file(&test_file).ok();
+    }
+
+    #[test]
+    fn run_check_invalid_theme() {
+        let temp_dir = std::env::temp_dir();
+        let test_file = temp_dir.join("test_check_invalid_theme.yml");
+        let content = "invalid: yaml: content: [unclosed";
+        std::fs::write(&test_file, content).expect("Failed to write test file");
+
+        let result = run_check(&test_file, false, true);
+        assert!(result.is_err());
+
+        std::fs::remove_file(&test_file).ok();
+    }
+
+    #[test]
+    fn run_check_invalid_frontmatter() {
+        let temp_dir = std::env::temp_dir();
+        let test_file = temp_dir.join("test_check_bad_frontmatter.md");
+        let content = "---\ninvalid yaml: [unclosed\n---\n# Slide";
+        std::fs::write(&test_file, content).expect("Failed to write test file");
+
+        let result = run_check(&test_file, false, false);
+        assert!(result.is_err());
 
         std::fs::remove_file(&test_file).ok();
     }

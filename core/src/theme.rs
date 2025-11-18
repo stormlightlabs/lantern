@@ -23,16 +23,12 @@ fn parse_hex_color(hex: &str) -> Option<(u8, u8, u8)> {
 ///
 /// Defines a standard 16-color palette that can be mapped to semantic theme roles.
 #[derive(Debug, Clone, Deserialize)]
-struct Base16Scheme {
-    #[allow(dead_code)]
-    system: String,
-    #[allow(dead_code)]
-    name: String,
-    #[allow(dead_code)]
-    author: String,
-    #[allow(dead_code)]
-    variant: String,
-    palette: Base16Palette,
+pub struct Base16Scheme {
+    pub system: String,
+    pub name: String,
+    pub author: String,
+    pub variant: String,
+    pub palette: Base16Palette,
 }
 
 /// Base16 color palette with 16 standardized color slots.
@@ -42,30 +38,29 @@ struct Base16Scheme {
 /// - base04-07: Foreground shades (darker to lightest)
 /// - base08-0F: Accent colors (red, orange, yellow, green, cyan, blue, magenta, brown)
 #[derive(Debug, Clone, Deserialize)]
-#[allow(dead_code)]
-struct Base16Palette {
-    base00: String,
-    base01: String,
-    base02: String,
-    base03: String,
-    base04: String,
-    base05: String,
-    base06: String,
-    base07: String,
-    base08: String,
-    base09: String,
+pub struct Base16Palette {
+    pub base00: String,
+    pub base01: String,
+    pub base02: String,
+    pub base03: String,
+    pub base04: String,
+    pub base05: String,
+    pub base06: String,
+    pub base07: String,
+    pub base08: String,
+    pub base09: String,
     #[serde(rename = "base0A")]
-    base0a: String,
+    pub base0a: String,
     #[serde(rename = "base0B")]
-    base0b: String,
+    pub base0b: String,
     #[serde(rename = "base0C")]
-    base0c: String,
+    pub base0c: String,
     #[serde(rename = "base0D")]
-    base0d: String,
+    pub base0d: String,
     #[serde(rename = "base0E")]
-    base0e: String,
+    pub base0e: String,
     #[serde(rename = "base0F")]
-    base0f: String,
+    pub base0f: String,
 }
 
 static CATPPUCCIN_LATTE: &str = include_str!("themes/catppuccin-latte.yml");

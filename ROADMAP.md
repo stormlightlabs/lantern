@@ -22,16 +22,16 @@ __Objective:__ Establish a clean, testable core with `clap` and a minimal `ratat
 
 __Objective:__ Parse markdown documents into a rich `Slide` struct.
 
-| Task                    | Description                                                     | Key Crates           |
-| ----------------------- | --------------------------------------------------------------- | -------------------- |
-| __✓ Parser Core__       | Split files on `---` separators.                                | `pulldown-cmark`[^4] |
-|                         | Detect title blocks, lists, and code fences.                    |                      |
-|                         | Represent as `Vec<Slide>`.                                      |                      |
-| __✓ Slide Model__       | Define structs: `Slide`, `Block`, `TextSpan`, `CodeBlock`, etc. | Internal             |
-| __✓ Metadata Parsing__  | Optional front matter (YAML/TOML) for theme, author, etc.       | `serde_yml`[^5]      |
-| __Error & Validation__  | Provide friendly parser errors with file/line info.             | `thiserror`[^6]      |
-| __✓ Basic CLI UX__      | `lantern present file.md` runs full TUI.                        | `clap`               |
-|                         | `lantern print` renders to stdout with width constraint.        |                      |
+| Task                     | Description                                                     | Key Crates           |
+| ------------------------ | --------------------------------------------------------------- | -------------------- |
+| __✓ Parser Core__        | Split files on `---` separators.                                | `pulldown-cmark`[^4] |
+|                          | Detect title blocks, lists, and code fences.                    |                      |
+|                          | Represent as `Vec<Slide>`.                                      |                      |
+| __✓ Slide Model__        | Define structs: `Slide`, `Block`, `TextSpan`, `CodeBlock`, etc. | Internal             |
+| __✓ Metadata Parsing__   | Optional front matter (YAML/TOML) for theme, author, etc.       | `serde_yml`[^5]      |
+| __✓ Error & Validation__ | Provide friendly parser errors with file/line info.             | `thiserror`[^6]      |
+| __✓ Basic CLI UX__       | `lantern present file.md` runs full TUI.                        | `clap`               |
+|                          | `lantern print` renders to stdout with width constraint.        |                      |
 
 ## Rendering & Navigation
 
@@ -81,10 +81,10 @@ __Objective:__ Add richness and visual polish to text and layout.
 
 | Task                 | Description                                                   | Key Crates                    |
 | -------------------- | ------------------------------------------------------------- | ----------------------------- |
-| __Tables & Lists__   | Render GitHub-style tables, bullets, and task lists.          | `pulldown-cmark`, `ratatui`   |
+| __Tables & Lists__   | Render GitHub-style tables, bullets, and task lists           | `pulldown-cmark`, `ratatui`   |
+| __Horizontal Rules__ | Use box-drawing (`─`, `═`) and/or black horizontal bar (`▬`)  | Unicode constants             |
 | __Admonitions__      | Highlighted boxes with icons                                  | `owo-colors`, internal glyphs |
-| __Horizontal Rules__ | Use box-drawing (`─`, `═`) and shading (`░`, `▓`).            | Unicode constants             |
-| __Generators__       | `lantern init` scaffolds an example deck with code and notes. | `include_str!`, `fs`          |
+| __Generators__       | `lantern init` scaffolds an example deck with code and notes  | `include_str!`, `fs`          |
 
 ## RC
 

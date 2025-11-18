@@ -21,6 +21,9 @@ pub enum SlideError {
 
     #[error("JSON parsing failed: {0}")]
     JsonError(#[from] serde_json::Error),
+
+    #[error("Theme validation error: {0}")]
+    ThemeError(String),
 }
 
 pub type Result<T> = std::result::Result<T, SlideError>;
@@ -39,6 +42,10 @@ impl SlideError {
 
     pub fn front_matter(message: impl Into<String>) -> Self {
         Self::FrontMatterError(message.into())
+    }
+
+    pub fn theme_error(message: impl Into<String>) -> Self {
+        Self::ThemeError(message.into())
     }
 }
 

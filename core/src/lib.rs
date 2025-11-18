@@ -6,3 +6,4 @@ pub mod printer;
 pub mod slide;
 pub mod term;
 pub mod theme;
+pub mod validator;
