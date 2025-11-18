@@ -152,10 +152,6 @@ impl SlideViewer {
         self.slides.iter().any(|slide| slide.notes.is_some())
     }
 
-    fn theme(&self) -> ThemeColors {
-        self.stylesheet.theme.clone()
-    }
-
     /// Render the current slide to the frame
     pub fn render(&self, frame: &mut Frame, area: Rect) {
         if let Some(slide) = self.current_slide() {
@@ -207,7 +203,7 @@ impl SlideViewer {
 
     /// Render status bar with navigation info
     pub fn render_status_bar(&self, frame: &mut Frame, area: Rect) {
-        let filename_part = self.filename.as_ref().map(|f| format!("{} | ", f)).unwrap_or_default();
+        let filename_part = self.filename.as_ref().map(|f| format!("{f} | ")).unwrap_or_default();
 
         let elapsed = self
             .start_time
@@ -217,7 +213,7 @@ impl SlideViewer {
                 let hours = secs / 3600;
                 let minutes = (secs % 3600) / 60;
                 let seconds = secs % 60;
-                format!(" | {:02}:{:02}:{:02}", hours, minutes, seconds)
+                format!(" | {hours:02}:{minutes:02}:{seconds:02}")
             })
             .unwrap_or_default();
 
@@ -257,7 +253,7 @@ impl SlideViewer {
         let text_len = help_text.chars().count();
         let padding = if text_len < width { " ".repeat(width - text_len) } else { String::new() };
 
-        let full_text = format!("{}{}", help_text, padding);
+        let full_text = format!("{help_text}{padding}");
 
         let dimmed_style = Style::default().fg(Color::Rgb(100, 100, 100)).bg(Color::Rgb(
             self.theme().ui_background.r,
@@ -268,6 +264,10 @@ impl SlideViewer {
         let help_line = Paragraph::new(Line::from(vec![Span::styled(full_text, dimmed_style)]));
 
         frame.render_widget(help_line, area);
+    }
+
+    fn theme(&self) -> ThemeColors {
+        self.stylesheet.theme
     }
 }
 

@@ -3,6 +3,7 @@ use ratatui::layout::{Constraint, Direction, Layout, Margin, Rect};
 /// Layout manager for slide presentation
 ///
 /// Calculates screen layout with main slide area, optional notes panel, status bar, and optional help line.
+#[derive(Default)]
 pub struct SlideLayout {
     show_notes: bool,
     show_help: bool,
@@ -80,11 +81,6 @@ impl SlideLayout {
     }
 }
 
-impl Default for SlideLayout {
-    fn default() -> Self {
-        Self { show_notes: false, show_help: false }
-    }
-}
 
 #[cfg(test)]
 mod tests {
@@ -148,8 +144,8 @@ mod tests {
         let main_percentage = (main.width as f32 / area.width as f32) * 100.0;
         let notes_percentage = (notes_area.width as f32 / area.width as f32) * 100.0;
 
-        assert!(main_percentage >= 55.0 && main_percentage <= 65.0);
-        assert!(notes_percentage >= 35.0 && notes_percentage <= 45.0);
+        assert!((55.0..=65.0).contains(&main_percentage));
+        assert!((35.0..=45.0).contains(&notes_percentage));
     }
 
     #[test]

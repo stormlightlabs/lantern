@@ -41,25 +41,24 @@ impl Meta {
         match format {
             FrontmatterFormat::Yaml => match serde_yml::from_str(header) {
                 Ok(meta) => Ok(meta),
-                Err(e) => Err(SlideError::front_matter(format!("Failed to parse YAML: {}", e))),
+                Err(e) => Err(SlideError::front_matter(format!("Failed to parse YAML: {e}"))),
             },
             FrontmatterFormat::Toml => match toml::from_str(header) {
                 Ok(meta) => Ok(meta),
-                Err(e) => Err(SlideError::front_matter(format!("Failed to parse TOML: {}", e))),
+                Err(e) => Err(SlideError::front_matter(format!("Failed to parse TOML: {e}"))),
             },
         }
     }
 
     /// Extract frontmatter block with the given delimiter and format
     fn extract_frontmatter(rest: &str, delimiter: &str, format: FrontmatterFormat) -> Result<(Self, String)> {
-        match rest.find(&format!("\n{}", delimiter)) {
+        match rest.find(&format!("\n{delimiter}")) {
             Some(end_pos) => Ok((
                 Self::parse(&rest[..end_pos], format)?,
                 rest[end_pos + delimiter.len() + 1..].to_string(),
             )),
             None => Err(SlideError::front_matter(format!(
-                "Unclosed {} frontmatter block (missing closing {})",
-                format, delimiter
+                "Unclosed {format} frontmatter block (missing closing {delimiter})"
             ))),
         }
     }
@@ -97,7 +96,7 @@ impl Meta {
                 let day_of_year = epoch_days % 365;
                 let month = (day_of_year / 30) + 1;
                 let day = (day_of_year % 30) + 1;
-                format!("{:04}-{:02}-{:02}", year, month, day)
+                format!("{year:04}-{month:02}-{day:02}")
             }
             Err(_) => "Unknown".to_string(),
         }
@@ -125,7 +124,6 @@ impl std::fmt::Display for FrontmatterFormat {
                 FrontmatterFormat::Yaml => "YAML",
                 FrontmatterFormat::Toml => "TOML",
             }
-            .to_string()
         )
     }
 }

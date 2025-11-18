@@ -2,6 +2,7 @@ use crate::error::{Result, SlideError};
 use crate::metadata::Meta;
 use crate::parser::parse_slides_with_meta;
 use crate::theme::{Base16Scheme, ThemeColors, ThemeRegistry};
+
 use std::path::Path;
 
 /// Validation result containing errors and warnings
@@ -55,7 +56,7 @@ pub fn validate_slides(file_path: &Path, strict: bool) -> ValidationResult {
     let (meta, slides) = match parse_slides_with_meta(&markdown) {
         Ok((m, s)) => (m, s),
         Err(e) => {
-            result.add_error(format!("Parse error: {}", e));
+            result.add_error(format!("Parse error: {e}"));
             return result;
         }
     };
@@ -118,7 +119,7 @@ pub fn validate_theme_file(file_path: &Path) -> ValidationResult {
     let scheme: Base16Scheme = match serde_yml::from_str(&yaml_content) {
         Ok(s) => s,
         Err(e) => {
-            result.add_error(format!("Failed to parse YAML: {}", e));
+            result.add_error(format!("Failed to parse YAML: {e}"));
             return result;
         }
     };
@@ -187,7 +188,7 @@ fn validate_hex_color(name: &str, hex: &str, result: &mut ValidationResult) {
     }
 
     if !hex.chars().all(|c| c.is_ascii_hexdigit()) {
-        result.add_error(format!("Color {} contains invalid hex characters", name));
+        result.add_error(format!("Color {name} contains invalid hex characters"));
     }
 }
 

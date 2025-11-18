@@ -1,11 +1,11 @@
-use ratatui::{
-    style::{Modifier, Style},
-    text::{Line, Span, Text},
-};
 use lantern_core::{
     highlighter,
     slide::{Block, CodeBlock, List, Table, TextSpan, TextStyle},
     theme::ThemeColors,
+};
+use ratatui::{
+    style::{Modifier, Style},
+    text::{Line, Span, Text},
 };
 
 /// Render a slide's blocks into ratatui Text
@@ -67,7 +67,7 @@ fn render_code_block(code: &CodeBlock, theme: &ThemeColors, lines: &mut Vec<Line
     let fence_style = to_ratatui_style(&theme.code_fence, false);
 
     if let Some(lang) = &code.language {
-        lines.push(Line::from(Span::styled(format!("```{}", lang), fence_style)));
+        lines.push(Line::from(Span::styled(format!("```{lang}"), fence_style)));
     } else {
         lines.push(Line::from(Span::styled("```".to_string(), fence_style)));
     }
@@ -123,17 +123,14 @@ fn render_blockquote(blocks: &[Block], theme: &ThemeColors, lines: &mut Vec<Line
     let border_style = to_ratatui_style(&theme.blockquote_border, false);
 
     for block in blocks {
-        match block {
-            Block::Paragraph { spans } => {
-                let mut line_spans = vec![Span::styled("│ ".to_string(), border_style)];
+        if let Block::Paragraph { spans } = block {
+            let mut line_spans = vec![Span::styled("│ ".to_string(), border_style)];
 
-                for span in spans {
-                    line_spans.push(create_span(span, theme, false));
-                }
-
-                lines.push(Line::from(line_spans));
+            for span in spans {
+                line_spans.push(create_span(span, theme, false));
             }
-            _ => {}
+
+            lines.push(Line::from(line_spans));
         }
     }
 }
@@ -214,9 +211,10 @@ fn to_ratatui_style(color: &lantern_core::theme::Color, bold: bool) -> Style {
 
 #[cfg(test)]
 mod tests {
-    use lantern_core::slide::ListItem;
-
     use super::*;
+
+    use lantern_core::slide::ListItem;
+    use lantern_core::theme::Color;
 
     #[test]
     fn render_heading_basic() {
@@ -275,8 +273,6 @@ mod tests {
 
     #[test]
     fn to_ratatui_style_converts_color() {
-        use lantern_core::theme::Color;
-
         let color = Color::new(255, 128, 64);
         let style = to_ratatui_style(&color, false);
 
@@ -285,8 +281,6 @@ mod tests {
 
     #[test]
     fn to_ratatui_style_applies_bold() {
-        use lantern_core::theme::Color;
-
         let color = Color::new(100, 150, 200);
         let style = to_ratatui_style(&color, true);
 
@@ -296,11 +290,8 @@ mod tests {
 
     #[test]
     fn to_ratatui_style_no_bold_when_false() {
-        use lantern_core::theme::Color;
-
         let color = Color::new(100, 150, 200);
         let style = to_ratatui_style(&color, false);
-
         assert!(!style.add_modifier.contains(Modifier::BOLD));
     }
 
@@ -308,17 +299,15 @@ mod tests {
     fn render_heading_uses_theme_colors() {
         let theme = ThemeColors::default();
         let blocks = vec![Block::Heading { level: 1, spans: vec![TextSpan::plain("Colored Heading")] }];
-
         let text = render_slide_content(&blocks, &theme);
         assert!(!text.lines.is_empty());
-        assert!(text.lines.len() >= 1);
+        assert!(!text.lines.is_empty());
     }
 
     #[test]
     fn apply_theme_style_respects_heading_bold() {
         let theme = ThemeColors::default();
         let text_style = TextStyle::default();
-
         let style = apply_theme_style(&theme, &text_style, true);
         assert!(style.add_modifier.contains(Modifier::BOLD));
     }
@@ -326,10 +315,9 @@ mod tests {
     #[test]
     fn apply_theme_style_uses_code_color_for_code() {
         let theme = ThemeColors::default();
-        let mut text_style = TextStyle::default();
-        text_style.code = true;
-
+        let text_style = TextStyle { code: true, ..Default::default() };
         let style = apply_theme_style(&theme, &text_style, false);
+
         assert_eq!(
             style.fg,
             Some(ratatui::style::Color::Rgb(theme.code.r, theme.code.g, theme.code.b))

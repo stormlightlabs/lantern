@@ -22,7 +22,7 @@ pub fn print_slides<W: std::io::Write>(
             writeln!(writer)?;
             let sep_text = "═".repeat(width);
             let separator = theme.rule(&sep_text);
-            writeln!(writer, "{}", separator)?;
+            writeln!(writer, "{separator}")?;
             writeln!(writer)?;
         }
 
@@ -118,7 +118,7 @@ fn print_paragraph<W: std::io::Write>(
             current_line.push(' ');
             current_line.push_str(word);
         } else {
-            write!(writer, "{}", indent_str)?;
+            write!(writer, "{indent_str}")?;
             for span in spans {
                 if current_line.contains(&span.text) {
                     print_span(writer, span, theme, false)?;
@@ -134,7 +134,7 @@ fn print_paragraph<W: std::io::Write>(
     }
 
     if !current_line.is_empty() {
-        write!(writer, "{}", indent_str)?;
+        write!(writer, "{indent_str}")?;
         for span in spans {
             print_span(writer, span, theme, false)?;
         }
@@ -149,7 +149,7 @@ fn print_code_block<W: std::io::Write>(
     writer: &mut W, code: &CodeBlock, theme: &ThemeColors, width: usize,
 ) -> std::io::Result<()> {
     if let Some(lang) = &code.language {
-        writeln!(writer, "{}", theme.code_fence(&format!("```{}", lang)))?;
+        writeln!(writer, "{}", theme.code_fence(&format!("```{lang}")))?;
     } else {
         writeln!(writer, "{}", theme.code_fence(&"```"))?;
     }
@@ -179,7 +179,7 @@ fn print_code_block<W: std::io::Write>(
 
 /// Print a list with bullets or numbers
 fn print_list<W: std::io::Write>(
-    writer: &mut W, list: &List, theme: &ThemeColors, width: usize, indent: usize,
+    writer: &mut W, list: &List, theme: &ThemeColors, _width: usize, indent: usize,
 ) -> std::io::Result<()> {
     for (idx, item) in list.items.iter().enumerate() {
         let marker = if list.ordered { format!("{}. ", idx + 1) } else { "• ".to_string() };
@@ -194,7 +194,7 @@ fn print_list<W: std::io::Write>(
         writeln!(writer)?;
 
         if let Some(nested) = &item.nested {
-            print_list(writer, nested, theme, width, indent + 2)?;
+            print_list(writer, nested, theme, _width, indent + 2)?;
         }
     }
 
@@ -357,13 +357,13 @@ fn apply_text_style<T: std::fmt::Display>(styled: &owo_colors::Styled<T>, text_s
     let mut result = styled.to_string();
 
     if text_style.bold {
-        result = format!("\x1b[1m{}\x1b[22m", result);
+        result = format!("\x1b[1m{result}\x1b[22m");
     }
     if text_style.italic {
-        result = format!("\x1b[3m{}\x1b[23m", result);
+        result = format!("\x1b[3m{result}\x1b[23m");
     }
     if text_style.strikethrough {
-        result = format!("\x1b[9m{}\x1b[29m", result);
+        result = format!("\x1b[9m{result}\x1b[29m");
     }
 
     result

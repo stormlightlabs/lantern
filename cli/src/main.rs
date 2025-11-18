@@ -1,9 +1,14 @@
 /// TODO: Add --no-bg flag to present command to allow users to disable background color
 use clap::{Parser, Subcommand};
+use lantern_core::validator::{validate_slides, validate_theme_file};
 use lantern_core::{parser::parse_slides_with_meta, term::Terminal as SlideTerminal, theme::ThemeRegistry};
 use lantern_ui::App;
+use owo_colors::OwoColorize;
 use ratatui::{Terminal, backend::CrosstermBackend};
-use std::{io, path::PathBuf};
+use std::{
+    io,
+    path::{Path, PathBuf},
+};
 use tracing::Level;
 
 /// A modern terminal-based presentation tool
@@ -74,7 +79,7 @@ fn main() {
             .write(true)
             .truncate(true)
             .open(&log_path)
-            .unwrap_or_else(|e| panic!("Failed to create log file at {}: {}", log_path, e));
+            .unwrap_or_else(|e| panic!("Failed to create log file at {log_path}: {e}"));
 
         tracing_subscriber::fmt()
             .with_max_level(cli.log_level)
@@ -92,13 +97,13 @@ fn main() {
     match cli.command {
         Commands::Present { file, theme } => {
             if let Err(e) = run_present(&file, theme) {
-                eprintln!("Error: {}", e);
+                eprintln!("Error: {e}");
                 std::process::exit(1);
             }
         }
         Commands::Print { file, width, theme } => {
             if let Err(e) = run_print(&file, width, theme) {
-                eprintln!("Error: {}", e);
+                eprintln!("Error: {e}");
                 std::process::exit(1);
             }
         }
@@ -108,7 +113,7 @@ fn main() {
         }
         Commands::Check { file, strict, theme } => {
             if let Err(e) = run_check(&file, strict, theme) {
-                eprintln!("Error: {}", e);
+                eprintln!("Error: {e}");
                 std::process::exit(1);
             }
         }
@@ -122,7 +127,7 @@ fn run_present(file: &PathBuf, theme_arg: Option<String>) -> io::Result<()> {
         .map_err(|e| io::Error::new(e.kind(), format!("Failed to read file {}: {}", file.display(), e)))?;
 
     let (meta, slides) = parse_slides_with_meta(&markdown)
-        .map_err(|e| io::Error::new(io::ErrorKind::InvalidData, format!("Parse error: {}", e)))?;
+        .map_err(|e| io::Error::new(io::ErrorKind::InvalidData, format!("Parse error: {e}")))?;
 
     if slides.is_empty() {
         return Err(io::Error::new(io::ErrorKind::InvalidData, "No slides found in file"));
@@ -164,10 +169,7 @@ fn run_present(file: &PathBuf, theme_arg: Option<String>) -> io::Result<()> {
     result
 }
 
-fn run_check(file: &PathBuf, strict: bool, is_theme: bool) -> io::Result<()> {
-    use lantern_core::validator::{validate_slides, validate_theme_file};
-    use owo_colors::OwoColorize;
-
+fn run_check(file: &Path, strict: bool, is_theme: bool) -> io::Result<()> {
     if is_theme {
         tracing::info!("Validating theme file: {}", file.display());
         let result = validate_theme_file(file);
@@ -228,7 +230,7 @@ fn run_print(file: &PathBuf, width: usize, theme_arg: Option<String>) -> io::Res
         .map_err(|e| io::Error::new(e.kind(), format!("Failed to read file {}: {}", file.display(), e)))?;
 
     let (meta, slides) = parse_slides_with_meta(&markdown)
-        .map_err(|e| io::Error::new(io::ErrorKind::InvalidData, format!("Parse error: {}", e)))?;
+        .map_err(|e| io::Error::new(io::ErrorKind::InvalidData, format!("Parse error: {e}")))?;
 
     if slides.is_empty() {
         return Err(io::Error::new(io::ErrorKind::InvalidData, "No slides found in file"));

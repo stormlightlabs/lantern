@@ -161,7 +161,7 @@ fn parse_slide(markdown: String) -> Result<Slide> {
                     }) = block_stack.last_mut()
                     {
                         if !current_row.is_empty() {
-                            *headers = current_row.drain(..).collect();
+                            *headers = std::mem::take(current_row);
                         }
                         *in_header = false;
                     }
@@ -174,7 +174,7 @@ fn parse_slide(markdown: String) -> Result<Slide> {
                     }) = block_stack.last_mut()
                     {
                         if !current_row.is_empty() {
-                            rows.push(current_row.drain(..).collect());
+                            rows.push(std::mem::take(current_row));
                         }
                     }
                 }
@@ -185,7 +185,7 @@ fn parse_slide(markdown: String) -> Result<Slide> {
                         ..
                     }) = block_stack.last_mut()
                     {
-                        current_row.push(current_cell.drain(..).collect());
+                        current_row.push(std::mem::take(current_cell));
                     }
                 }
                 TagEnd::Item => {
@@ -195,7 +195,7 @@ fn parse_slide(markdown: String) -> Result<Slide> {
                     {
                         if !current_item.is_empty() {
                             items.push(ListItem {
-                                spans: current_item.drain(..).collect(),
+                                spans: std::mem::take(current_item),
                                 nested: None,
                             });
                         }
@@ -543,8 +543,8 @@ Test content"#;
 
         match &slides[0].blocks[0] {
             Block::Table(table) => {
-                assert_eq!(table.rows[0][0][0].style.bold, true);
-                assert_eq!(table.rows[0][1][0].style.code, true);
+                assert!(table.rows[0][0][0].style.bold);
+                assert!(table.rows[0][1][0].style.code);
             }
             _ => panic!("Expected table"),
         }

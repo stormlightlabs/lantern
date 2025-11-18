@@ -660,8 +660,7 @@ palette:
             let styled = theme.heading(&"Test");
             assert!(
                 styled.to_string().contains("Test"),
-                "Theme '{}' failed to parse or apply styles",
-                theme_name
+                "Theme '{theme_name}' failed to parse or apply styles"
             );
         }
     }
