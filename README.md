@@ -6,8 +6,22 @@
 
 ### Installation
 
+From a local clone:
+
 ```bash
-cargo install lantern
+cargo install --path cli
+```
+
+From GitHub:
+
+```bash
+cargo install --git https://github.com/stormlightlabs/lantern.git lantern-cli
+```
+
+From Tangled:
+
+```bash
+cargo install --git https://tangled.sh/desertthunder.dev/lantern lantern-cli
 ```
 
 ### Create Your First Deck

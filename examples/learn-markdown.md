@@ -3,6 +3,8 @@ theme: default
 author: Learn Markdown
 ---
 
+<!-- markdownlint-disable MD034 MD035 -->
+
 # Markdown Basics
 
 A quick reference for Markdown syntax
