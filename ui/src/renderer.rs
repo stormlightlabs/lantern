@@ -45,7 +45,7 @@ fn get_prefix(level: u8) -> &'static str {
 /// Render a heading with size based on level
 fn render_heading(level: u8, spans: &[TextSpan], theme: &ThemeColors, lines: &mut Vec<Line<'static>>) {
     let prefix = get_prefix(level);
-    let heading_style = to_ratatui_style(&theme.heading);
+    let heading_style = to_ratatui_style(&theme.heading, theme.heading_bold);
     let mut line_spans = vec![Span::styled(prefix.to_string(), heading_style)];
 
     for span in spans {
@@ -63,8 +63,8 @@ fn render_paragraph(spans: &[TextSpan], theme: &ThemeColors, lines: &mut Vec<Lin
 
 /// Render a code block with monospace styling
 fn render_code_block(code: &CodeBlock, theme: &ThemeColors, lines: &mut Vec<Line<'static>>) {
-    let fence_style = to_ratatui_style(&theme.code_fence);
-    let code_style = to_ratatui_style(&theme.code);
+    let fence_style = to_ratatui_style(&theme.code_fence, false);
+    let code_style = to_ratatui_style(&theme.code, false);
 
     if let Some(lang) = &code.language {
         lines.push(Line::from(Span::styled(format!("```{}", lang), fence_style)));
@@ -81,7 +81,7 @@ fn render_code_block(code: &CodeBlock, theme: &ThemeColors, lines: &mut Vec<Line
 
 /// Render a list with bullets or numbers
 fn render_list(list: &List, theme: &ThemeColors, lines: &mut Vec<Line<'static>>, indent: usize) {
-    let marker_style = to_ratatui_style(&theme.list_marker);
+    let marker_style = to_ratatui_style(&theme.list_marker, false);
 
     for (idx, item) in list.items.iter().enumerate() {
         let prefix = if list.ordered {
@@ -106,14 +106,14 @@ fn render_list(list: &List, theme: &ThemeColors, lines: &mut Vec<Line<'static>>,
 
 /// Render a horizontal rule
 fn render_rule(theme: &ThemeColors, lines: &mut Vec<Line<'static>>) {
-    let rule_style = to_ratatui_style(&theme.rule);
+    let rule_style = to_ratatui_style(&theme.rule, false);
     let rule = "─".repeat(60);
     lines.push(Line::from(Span::styled(rule, rule_style)));
 }
 
 /// Render a blockquote with indentation
 fn render_blockquote(blocks: &[Block], theme: &ThemeColors, lines: &mut Vec<Line<'static>>) {
-    let border_style = to_ratatui_style(&theme.blockquote_border);
+    let border_style = to_ratatui_style(&theme.blockquote_border, false);
 
     for block in blocks {
         match block {
@@ -133,7 +133,7 @@ fn render_blockquote(blocks: &[Block], theme: &ThemeColors, lines: &mut Vec<Line
 
 /// Render a table with basic formatting
 fn render_table(table: &Table, theme: &ThemeColors, lines: &mut Vec<Line<'static>>) {
-    let border_style = to_ratatui_style(&theme.table_border);
+    let border_style = to_ratatui_style(&theme.table_border, false);
 
     if !table.headers.is_empty() {
         let mut header_line = Vec::new();
@@ -174,11 +174,11 @@ fn create_span(text_span: &TextSpan, theme: &ThemeColors, is_heading: bool) -> S
 /// Apply theme colors and text styling
 fn apply_theme_style(theme: &ThemeColors, text_style: &TextStyle, is_heading: bool) -> Style {
     let mut style = if is_heading {
-        to_ratatui_style(&theme.heading)
+        to_ratatui_style(&theme.heading, theme.heading_bold)
     } else if text_style.code {
-        to_ratatui_style(&theme.code)
+        to_ratatui_style(&theme.code, false)
     } else {
-        to_ratatui_style(&theme.body)
+        to_ratatui_style(&theme.body, false)
     };
 
     if text_style.bold {
@@ -194,12 +194,15 @@ fn apply_theme_style(theme: &ThemeColors, text_style: &TextStyle, is_heading: bo
     style
 }
 
-/// Convert owo-colors Style to ratatui Style
-///
-/// Since owo-colors Style is opaque, we return a default ratatui style.
-/// The theme provides semantic meaning; actual visual styling is defined here.
-fn to_ratatui_style(_owo_style: &owo_colors::Style) -> Style {
-    Style::default()
+/// Convert theme Color to ratatui Style with RGB colors
+fn to_ratatui_style(color: &slides_core::theme::Color, bold: bool) -> Style {
+    let mut style = Style::default().fg(ratatui::style::Color::Rgb(color.r, color.g, color.b));
+
+    if bold {
+        style = style.add_modifier(Modifier::BOLD);
+    }
+
+    style
 }
 
 #[cfg(test)]
@@ -261,5 +264,81 @@ mod tests {
         let theme = ThemeColors::default();
         let text = render_slide_content(&blocks, &theme);
         assert!(!text.lines.is_empty());
+    }
+
+    #[test]
+    fn to_ratatui_style_converts_color() {
+        use slides_core::theme::Color;
+
+        let color = Color::new(255, 128, 64);
+        let style = to_ratatui_style(&color, false);
+
+        assert_eq!(
+            style.fg,
+            Some(ratatui::style::Color::Rgb(255, 128, 64))
+        );
+    }
+
+    #[test]
+    fn to_ratatui_style_applies_bold() {
+        use slides_core::theme::Color;
+
+        let color = Color::new(100, 150, 200);
+        let style = to_ratatui_style(&color, true);
+
+        assert_eq!(
+            style.fg,
+            Some(ratatui::style::Color::Rgb(100, 150, 200))
+        );
+        assert!(style.add_modifier.contains(Modifier::BOLD));
+    }
+
+    #[test]
+    fn to_ratatui_style_no_bold_when_false() {
+        use slides_core::theme::Color;
+
+        let color = Color::new(100, 150, 200);
+        let style = to_ratatui_style(&color, false);
+
+        assert!(!style.add_modifier.contains(Modifier::BOLD));
+    }
+
+    #[test]
+    fn render_heading_uses_theme_colors() {
+        let theme = ThemeColors::default();
+        let blocks = vec![Block::Heading {
+            level: 1,
+            spans: vec![TextSpan::plain("Colored Heading")],
+        }];
+
+        let text = render_slide_content(&blocks, &theme);
+        assert!(!text.lines.is_empty());
+        assert!(text.lines.len() >= 1);
+    }
+
+    #[test]
+    fn apply_theme_style_respects_heading_bold() {
+        let theme = ThemeColors::default();
+        let text_style = TextStyle::default();
+
+        let style = apply_theme_style(&theme, &text_style, true);
+        assert!(style.add_modifier.contains(Modifier::BOLD));
+    }
+
+    #[test]
+    fn apply_theme_style_uses_code_color_for_code() {
+        let theme = ThemeColors::default();
+        let mut text_style = TextStyle::default();
+        text_style.code = true;
+
+        let style = apply_theme_style(&theme, &text_style, false);
+        assert_eq!(
+            style.fg,
+            Some(ratatui::style::Color::Rgb(
+                theme.code.r,
+                theme.code.g,
+                theme.code.b
+            ))
+        );
     }
 }
