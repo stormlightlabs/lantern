@@ -1,39 +1,82 @@
 # Themes
 
-slides.rs provides a theme system for customizing the appearance of your presentations. Themes control colors and styling for headings, body text, code blocks, and UI elements.
+slides.rs uses the [Base16](https://github.com/chriskempson/base16) theming system for customizing the appearance of your presentations. Base16 provides a standardized way to define color schemes that work consistently across dark and light backgrounds.
 
-## Automatic Light/Dark Detection
+## Base16 Color System
 
-Each theme automatically detects your terminal background and selects the appropriate light or dark variant. This ensures optimal contrast and readability regardless of your terminal settings.
+Base16 defines 16 semantic colors (base00 through base0F) that serve specific purposes:
 
-## Available Theme Schemes
+### Background Shades
 
-The following color schemes are built-in:
+- **base00-03**: Background colors from darkest to lighter (or lightest to darker in light themes)
 
-**basic** (default) - IBM's Oxocarbon color palette with clean, modern styling
+### Foreground Shades
 
-- Dark variant: Light text on dark background with vibrant accents
-- Light variant: Dark text on light background with adjusted colors
+- **base04-07**: Foreground colors from darker to lightest (or lightest to darker in light themes)
 
-**monokai** - Inspired by the popular Monokai editor theme
+### Accent Colors
 
-- Dark variant: Classic Monokai with pink headings and green code
-- Light variant: Adjusted colors for light backgrounds
+- **base08**: Red (variables, deletion)
+- **base09**: Orange (integers, constants, emphasis)
+- **base0A**: Yellow (classes, list markers)
+- **base0B**: Green (strings, code blocks)
+- **base0C**: Cyan (links, support functions)
+- **base0D**: Blue (functions, headings)
+- **base0E**: Magenta (keywords, strong emphasis)
+- **base0F**: Brown (deprecated, special)
 
-**dracula** - Based on the Dracula color scheme
+## Color Mapping
 
-- Dark variant: Purple and cyan tones optimized for dark backgrounds
-- Light variant: Darker variants of Dracula colors for light backgrounds
+slides.rs maps base16 colors to semantic roles:
 
-**solarized** - Ethan Schoonover's Solarized palette
+### Content Colors
 
-- Dark variant: Solarized Dark with blue headings
-- Light variant: Solarized Light with adjusted foreground colors
+- **Headings** (base0D): Blue accent for slide titles
+- **Body text** (base05): Main foreground color
+- **Strong/Bold** (base0E): Magenta for emphasis
+- **Emphasis/Italic** (base09): Orange for subtle emphasis
+- **Code blocks** (base0B): Green for fenced code
+- **Inline code background** (base02): Selection background
+- **Links** (base0C): Cyan for hyperlinks
+- **Accents** (base08): Red for highlights
+- **List markers** (base0A): Yellow for bullets/numbers
+- **Dimmed elements** (base03): Comments, borders, rules
 
-**nord** - Arctic-inspired theme with cool tones
+### UI Chrome Colors
 
-- Dark variant: Subtle blues and greens on dark background
-- Light variant: Nord colors adjusted for light backgrounds
+- **UI background** (base00): Status bar and UI backgrounds
+- **UI borders** (base04): Window and panel borders
+- **UI titles** (base06): Bright text for UI elements
+- **UI text** (base07): Brightest text for status bars
+
+## Available Themes
+
+slides.rs includes 10 prebuilt base16 themes, embedded at compile time:
+
+### Catppuccin
+
+- **catppuccin-mocha** - Dark theme with pastel colors
+- **catppuccin-latte** - Light theme with warm tones
+
+### Gruvbox Material
+
+- **gruvbox-material-dark** - Retro dark theme with warm colors
+- **gruvbox-material-light** - Retro light theme
+
+### Nord
+
+- **nord** - Arctic-inspired dark theme with cool blues
+- **nord-light** - Nord palette adapted for light backgrounds
+
+### Oxocarbon
+
+- **oxocarbon-dark** - IBM's modern dark theme (default)
+- **oxocarbon-light** - IBM's modern light theme
+
+### Solarized
+
+- **solarized-dark** - Ethan Schoonover's precision dark palette
+- **solarized-light** - Solarized adapted for light backgrounds
 
 ## Using Themes
 
@@ -41,48 +84,33 @@ The following color schemes are built-in:
 
 Specify a theme in your slide deck's YAML frontmatter:
 
-````markdown
+```markdown
 ---
-theme: monokai
+theme: catppuccin-mocha
 ---
 
 # Your First Slide
 
 Content here
-```
-
-The terminal background will be automatically detected. To force a specific variant:
-
-```markdown
----
-theme: solarized:light
----
 ```
 
 Or with TOML frontmatter:
 
 ```markdown
 +++
-theme = "dracula:dark"
+theme = "nord"
 +++
 
 # Your First Slide
-
-Content here
-````
+```
 
 ### Via Command Line
 
 Override the theme with the `--theme` flag:
 
 ```bash
-# Auto-detect terminal background
 slides present slides.md --theme nord
-slides print slides.md --theme solarized
-
-# Force a specific variant
-slides present slides.md --theme monokai:light
-slides print slides.md --theme nord:dark
+slides print slides.md --theme catppuccin-latte
 ```
 
 ### Via Environment Variable
@@ -90,12 +118,7 @@ slides print slides.md --theme nord:dark
 Set a default theme using the `SLIDES_THEME` environment variable:
 
 ```bash
-# Auto-detect variant
-export SLIDES_THEME=basic
-slides present slides.md
-
-# Force specific variant
-export SLIDES_THEME=dracula:dark
+export SLIDES_THEME=gruvbox-material-dark
 slides present slides.md
 ```
 
@@ -106,81 +129,52 @@ When multiple theme sources are specified, the priority order is:
 1. Command line flag (`--theme`)
 2. Frontmatter metadata (`theme:` field)
 3. Environment variable (`SLIDES_THEME`)
-4. Default theme
+4. Default theme (nord for dark terminals, nord-light for light terminals)
 
-## Theme Components
+## Custom Themes (Coming Soon)
 
-Each theme defines colors for:
+Future versions will support loading custom base16 YAML themes from:
 
-- Headings (level 1-6)
-- Body text
-- Accent colors
-- Code blocks and inline code
-- Code fence markers
-- Horizontal rules
-- List markers (bullets and numbers)
-- Blockquote borders
-- Table borders
+- `~/.config/slides/themes/` directory
+- `--theme-file` command line flag
+
+Base16 YAML format:
+
+```yaml
+system: "base16"
+name: "My Custom Theme"
+author: "Your Name"
+variant: "dark"  # or "light"
+palette:
+  base00: "#1a1b26"
+  base01: "#16161e"
+  base02: "#2f3549"
+  base03: "#444b6a"
+  base04: "#787c99"
+  base05: "#a9b1d6"
+  base06: "#cbccd1"
+  base07: "#d5d6db"
+  base08: "#c0caf5"
+  base09: "#a9b1d6"
+  base0A: "#0db9d7"
+  base0B: "#9ece6a"
+  base0C: "#b4f9f8"
+  base0D: "#2ac3de"
+  base0E: "#bb9af7"
+  base0F: "#f7768e"
+```
+
+You can find thousands of base16 themes at the [Base16 Gallery](https://tinted-theming.github.io/tinted-gallery/).
 
 ## Rendering Features
 
 The printer uses Unicode box-drawing characters for clean visual output:
 
-- `─` and `═` for horizontal lines
-- `│` for vertical borders
-- `┼` for table intersections
+- `▉ ▓ ▒ ░ ▌` for heading levels (h1-h6)
+- `─` and `═` for horizontal rules
+- `│` for blockquote borders and table dividers
 - `•` for unordered list markers
 
 Tables automatically calculate column widths based on content and available terminal width.
 
-## Default Theme
-
-The application's default slide theme is based on Oxocarbon
-
-### Dark
-
-```yml
-- scheme: "Oxocarbon Dark"
-  author: "shaunsingh/IBM"
-  palette:
-    base00: "#161616"
-    base01: "#262626"
-    base02: "#393939"
-    base03: "#525252"
-    base04: "#dde1e6"
-    base05: "#f2f4f8"
-    base06: "#ffffff"
-    base07: "#08bdba"
-    base08: "#3ddbd9"
-    base09: "#78a9ff"
-    base0A: "#ee5396"
-    base0B: "#33b1ff"
-    base0C: "#ff7eb6"
-    base0D: "#42be65"
-    base0E: "#be95ff"
-    base0F: "#82cfff"
-```
-
-### Light
-
-```yml
-- scheme: "Oxocarbon Light"
-  author: "shaunsingh/IBM"
-  palette:
-    base00: "#f2f4f8"
-    base01: "#dde1e6"
-    base02: "#525252"
-    base03: "#161616"
-    base04: "#262626"
-    base05: "#393939"
-    base06: "#525252"
-    base07: "#08bdba"
-    base08: "#ff7eb6"
-    base09: "#ee5396"
-    base0A: "#FF6F00"
-    base0B: "#0f62fe"
-    base0C: "#673AB7"
-    base0D: "#42be65"
-    base0E: "#be95ff"
-    base0F: "#37474F"
-```
+Code blocks support syntax highlighting through [Syntect](https://github.com/trishume/syntect), which automatically adapts to your selected theme's light/dark variant.

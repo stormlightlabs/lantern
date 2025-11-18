@@ -1,5 +1,83 @@
 use owo_colors::{OwoColorize, Style};
+use serde::Deserialize;
 use terminal_colorsaurus::{QueryOptions, background_color};
+
+/// Parses a hex color string to RGB values.
+///
+/// Supports both `#RRGGBB` and `RRGGBB` formats.
+fn parse_hex_color(hex: &str) -> Option<(u8, u8, u8)> {
+    let hex = hex.trim_start_matches('#');
+
+    if hex.len() != 6 {
+        return None;
+    }
+
+    let r = u8::from_str_radix(&hex[0..2], 16).ok()?;
+    let g = u8::from_str_radix(&hex[2..4], 16).ok()?;
+    let b = u8::from_str_radix(&hex[4..6], 16).ok()?;
+
+    Some((r, g, b))
+}
+
+/// Base16 color scheme specification.
+///
+/// Defines a standard 16-color palette that can be mapped to semantic theme roles.
+#[derive(Debug, Clone, Deserialize)]
+struct Base16Scheme {
+    #[allow(dead_code)]
+    system: String,
+    #[allow(dead_code)]
+    name: String,
+    #[allow(dead_code)]
+    author: String,
+    #[allow(dead_code)]
+    variant: String,
+    palette: Base16Palette,
+}
+
+/// Base16 color palette with 16 standardized color slots.
+///
+/// Each base color serves a semantic purpose in the base16 specification:
+/// - base00-03: Background shades (darkest to lighter)
+/// - base04-07: Foreground shades (darker to lightest)
+/// - base08-0F: Accent colors (red, orange, yellow, green, cyan, blue, magenta, brown)
+#[derive(Debug, Clone, Deserialize)]
+#[allow(dead_code)]
+struct Base16Palette {
+    base00: String,
+    base01: String,
+    base02: String,
+    base03: String,
+    base04: String,
+    base05: String,
+    base06: String,
+    base07: String,
+    base08: String,
+    base09: String,
+    #[serde(rename = "base0A")]
+    base0a: String,
+    #[serde(rename = "base0B")]
+    base0b: String,
+    #[serde(rename = "base0C")]
+    base0c: String,
+    #[serde(rename = "base0D")]
+    base0d: String,
+    #[serde(rename = "base0E")]
+    base0e: String,
+    #[serde(rename = "base0F")]
+    base0f: String,
+}
+
+static CATPPUCCIN_LATTE: &str = include_str!("themes/catppuccin-latte.yml");
+static CATPPUCCIN_MOCHA: &str = include_str!("themes/catppuccin-mocha.yml");
+static GRUVBOX_MATERIAL_DARK: &str = include_str!("themes/gruvbox-material-dark-medium.yml");
+static GRUVBOX_MATERIAL_LIGHT: &str = include_str!("themes/gruvbox-material-light-medium.yml");
+static NORD_LIGHT: &str = include_str!("themes/nord-light.yml");
+static NORD: &str = include_str!("themes/nord.yml");
+static OXOCARBON_DARK: &str = include_str!("themes/oxocarbon-dark.yml");
+static OXOCARBON_LIGHT: &str = include_str!("themes/oxocarbon-light.yml");
+static SOLARIZED_DARK: &str = include_str!("themes/solarized-dark.yml");
+static SOLARIZED_LIGHT: &str = include_str!("themes/solarized-light.yml");
 
 /// RGB color value for use with both owo-colors and ratatui
 #[derive(Debug, Clone, Copy)]
@@ -66,15 +144,91 @@ pub struct ThemeColors {
     pub list_marker: Color,
     pub blockquote_border: Color,
     pub table_border: Color,
+    pub emphasis: Color,
+    pub strong: Color,
+    pub link: Color,
+    pub inline_code_bg: Color,
+    pub ui_border: Color,
+    pub ui_title: Color,
+    pub ui_text: Color,
+    pub ui_background: Color,
 }
 
 impl Default for ThemeColors {
     fn default() -> Self {
-        Self::basic(detect_is_dark())
+        let is_dark = detect_is_dark();
+        let theme_name = if is_dark { "nord" } else { "nord-light" };
+        ThemeRegistry::get(theme_name)
     }
 }
 
 impl ThemeColors {
+    /// Create a ThemeColors from a base16 color scheme.
+    ///
+    /// Maps base16 colors to semantic theme roles following base16 styling guidelines:
+    ///
+    /// Content colors:
+    /// - base05: body text (main foreground)
+    /// - base0D: headings (blue - classes/functions)
+    /// - base0E: strong emphasis (magenta/purple - keywords)
+    /// - base0B: code blocks (green - strings)
+    /// - base03: dimmed/borders (comment color)
+    /// - base0A: list markers (yellow - classes/constants)
+    /// - base09: emphasis/italics (orange - integers/constants)
+    /// - base0C: links (cyan - support/regex)
+    /// - base08: accents (red - variables/tags)
+    /// - base02: inline code background (selection background)
+    ///
+    /// UI chrome colors:
+    /// - base00: UI background (darkest background)
+    /// - base04: UI borders (dim foreground)
+    /// - base06: UI titles (bright foreground)
+    /// - base07: UI text (brightest foreground)
+    fn from_base16(scheme: &Base16Scheme) -> Option<Self> {
+        let palette = &scheme.palette;
+
+        let heading = parse_hex_color(&palette.base0d)?;
+        let body = parse_hex_color(&palette.base05)?;
+        let accent = parse_hex_color(&palette.base08)?;
+        let code = parse_hex_color(&palette.base0b)?;
+        let dimmed = parse_hex_color(&palette.base03)?;
+        let code_fence = dimmed;
+        let rule = dimmed;
+        let list_marker = parse_hex_color(&palette.base0a)?;
+        let blockquote_border = dimmed;
+        let table_border = dimmed;
+        let emphasis = parse_hex_color(&palette.base09)?;
+        let strong = parse_hex_color(&palette.base0e)?;
+        let link = parse_hex_color(&palette.base0c)?;
+        let inline_code_bg = parse_hex_color(&palette.base02)?;
+        let ui_background = parse_hex_color(&palette.base00)?;
+        let ui_border = parse_hex_color(&palette.base04)?;
+        let ui_title = parse_hex_color(&palette.base06)?;
+        let ui_text = parse_hex_color(&palette.base07)?;
+
+        Some(Self {
+            heading: Color::new(heading.0, heading.1, heading.2),
+            heading_bold: true,
+            body: Color::new(body.0, body.1, body.2),
+            accent: Color::new(accent.0, accent.1, accent.2),
+            code: Color::new(code.0, code.1, code.2),
+            dimmed: Color::new(dimmed.0, dimmed.1, dimmed.2),
+            code_fence: Color::new(code_fence.0, code_fence.1, code_fence.2),
+            rule: Color::new(rule.0, rule.1, rule.2),
+            list_marker: Color::new(list_marker.0, list_marker.1, list_marker.2),
+            blockquote_border: Color::new(blockquote_border.0, blockquote_border.1, blockquote_border.2),
+            table_border: Color::new(table_border.0, table_border.1, table_border.2),
+            emphasis: Color::new(emphasis.0, emphasis.1, emphasis.2),
+            strong: Color::new(strong.0, strong.1, strong.2),
+            link: Color::new(link.0, link.1, link.2),
+            inline_code_bg: Color::new(inline_code_bg.0, inline_code_bg.1, inline_code_bg.2),
+            ui_border: Color::new(ui_border.0, ui_border.1, ui_border.2),
+            ui_title: Color::new(ui_title.0, ui_title.1, ui_title.2),
+            ui_text: Color::new(ui_text.0, ui_text.1, ui_text.2),
+            ui_background: Color::new(ui_background.0, ui_background.1, ui_background.2),
+        })
+    }
+
     /// Apply heading style to text
     pub fn heading<'a, T: OwoColorize>(&self, text: &'a T) -> owo_colors::Styled<&'a T> {
         let mut style: Style = (&self.heading).into();
@@ -129,218 +283,115 @@ impl ThemeColors {
         text.style((&self.table_border).into())
     }
 
-    /// Create an oxocarbon-based theme.
-    pub fn basic(is_dark: bool) -> Self {
-        if is_dark {
-            Self {
-                heading: Color::new(66, 190, 101), // green
-                heading_bold: true,
-                body: Color::new(242, 244, 248),
-                accent: Color::new(238, 83, 150), // pink
-                code: Color::new(51, 177, 255), // blue
-                dimmed: Color::new(82, 82, 82), // gray
-                code_fence: Color::new(82, 82, 82),
-                rule: Color::new(82, 82, 82),
-                list_marker: Color::new(120, 169, 255), // light blue
-                blockquote_border: Color::new(82, 82, 82),
-                table_border: Color::new(82, 82, 82),
-            }
-        } else {
-            Self {
-                heading: Color::new(66, 190, 101), // green
-                heading_bold: true,
-                body: Color::new(57, 57, 57),
-                accent: Color::new(255, 111, 0), // orange
-                code: Color::new(15, 98, 254), // blue
-                dimmed: Color::new(22, 22, 22), // dark gray
-                code_fence: Color::new(22, 22, 22),
-                rule: Color::new(22, 22, 22),
-                list_marker: Color::new(238, 83, 150), // pink
-                blockquote_border: Color::new(22, 22, 22),
-                table_border: Color::new(22, 22, 22),
-            }
-        }
+    /// Apply emphasis (italic) style to text
+    pub fn emphasis<'a, T: OwoColorize>(&self, text: &'a T) -> owo_colors::Styled<&'a T> {
+        text.style((&self.emphasis).into())
     }
 
-    /// Create a Monokai-inspired theme.
-    ///
-    /// Dark variant uses classic Monokai colors optimized for dark backgrounds.
-    /// Light variant uses adjusted colors optimized for light backgrounds.
-    pub fn monokai(is_dark: bool) -> Self {
-        if is_dark {
-            Self {
-                heading: Color::new(249, 38, 114), // pink
-                heading_bold: true,
-                body: Color::new(248, 248, 242), // off-white
-                accent: Color::new(230, 219, 116), // yellow
-                code: Color::new(166, 226, 46), // green
-                dimmed: Color::new(117, 113, 94), // brown-gray
-                code_fence: Color::new(117, 113, 94),
-                rule: Color::new(117, 113, 94),
-                list_marker: Color::new(230, 219, 116),
-                blockquote_border: Color::new(117, 113, 94),
-                table_border: Color::new(117, 113, 94),
-            }
-        } else {
-            Self {
-                heading: Color::new(200, 30, 90), // darker pink
-                heading_bold: true,
-                body: Color::new(39, 40, 34), // dark gray
-                accent: Color::new(180, 170, 80), // darker yellow
-                code: Color::new(100, 150, 30), // darker green
-                dimmed: Color::new(150, 150, 150), // light gray
-                code_fence: Color::new(150, 150, 150),
-                rule: Color::new(150, 150, 150),
-                list_marker: Color::new(180, 170, 80),
-                blockquote_border: Color::new(150, 150, 150),
-                table_border: Color::new(150, 150, 150),
-            }
-        }
+    /// Apply strong (bold) style to text
+    pub fn strong<'a, T: OwoColorize>(&self, text: &'a T) -> owo_colors::Styled<&'a T> {
+        let style: Style = (&self.strong).into();
+        text.style(style.bold())
     }
 
-    /// Create a Dracula-inspired theme.
-    ///
-    /// Dark variant uses classic Dracula colors optimized for dark backgrounds.
-    /// Light variant uses adjusted colors optimized for light backgrounds.
-    pub fn dracula(is_dark: bool) -> Self {
-        if is_dark {
-            Self {
-                heading: Color::new(255, 121, 198), // pink
-                heading_bold: true,
-                body: Color::new(248, 248, 242),
-                accent: Color::new(139, 233, 253), // cyan
-                code: Color::new(80, 250, 123), // green
-                dimmed: Color::new(98, 114, 164),
-                code_fence: Color::new(98, 114, 164),
-                rule: Color::new(98, 114, 164),
-                list_marker: Color::new(241, 250, 140), // yellow
-                blockquote_border: Color::new(98, 114, 164),
-                table_border: Color::new(98, 114, 164),
-            }
-        } else {
-            Self {
-                heading: Color::new(200, 80, 160), // darker pink
-                heading_bold: true,
-                body: Color::new(40, 42, 54),
-                accent: Color::new(80, 150, 180), // darker cyan
-                code: Color::new(50, 160, 80), // darker green
-                dimmed: Color::new(150, 150, 150), // light gray
-                code_fence: Color::new(150, 150, 150),
-                rule: Color::new(150, 150, 150),
-                list_marker: Color::new(180, 170, 90), // darker yellow
-                blockquote_border: Color::new(150, 150, 150),
-                table_border: Color::new(150, 150, 150),
-            }
-        }
+    /// Apply link style to text
+    pub fn link<'a, T: OwoColorize>(&self, text: &'a T) -> owo_colors::Styled<&'a T> {
+        text.style((&self.link).into())
     }
 
-    /// Create a Solarized theme.
-    ///
-    /// Uses Ethan Schoonover's Solarized color palette.
-    pub fn solarized(is_dark: bool) -> Self {
-        if is_dark {
-            Self {
-                heading: Color::new(38, 139, 210),
-                heading_bold: true,
-                body: Color::new(131, 148, 150),
-                accent: Color::new(42, 161, 152),
-                code: Color::new(133, 153, 0),
-                dimmed: Color::new(88, 110, 117),
-                code_fence: Color::new(88, 110, 117),
-                rule: Color::new(88, 110, 117),
-                list_marker: Color::new(181, 137, 0),
-                blockquote_border: Color::new(88, 110, 117),
-                table_border: Color::new(88, 110, 117),
-            }
-        } else {
-            Self {
-                heading: Color::new(38, 139, 210),
-                heading_bold: true,
-                body: Color::new(101, 123, 131),
-                accent: Color::new(42, 161, 152),
-                code: Color::new(133, 153, 0),
-                dimmed: Color::new(147, 161, 161),
-                code_fence: Color::new(147, 161, 161),
-                rule: Color::new(147, 161, 161),
-                list_marker: Color::new(181, 137, 0),
-                blockquote_border: Color::new(147, 161, 161),
-                table_border: Color::new(147, 161, 161),
-            }
-        }
-    }
-
-    /// Create a Nord theme instance
-    pub fn nord(is_dark: bool) -> Self {
-        if is_dark {
-            Self {
-                heading: Color::new(136, 192, 208), // nord8 - light blue
-                heading_bold: true,
-                body: Color::new(216, 222, 233), // nord4
-                accent: Color::new(143, 188, 187), // nord7 - teal
-                code: Color::new(163, 190, 140), // nord14 - green
-                dimmed: Color::new(76, 86, 106), // nord3
-                code_fence: Color::new(76, 86, 106),
-                rule: Color::new(76, 86, 106),
-                list_marker: Color::new(235, 203, 139), // nord13 - yellow
-                blockquote_border: Color::new(76, 86, 106),
-                table_border: Color::new(76, 86, 106),
-            }
-        } else {
-            Self {
-                heading: Color::new(94, 129, 172), // darker blue
-                heading_bold: true,
-                body: Color::new(46, 52, 64),
-                accent: Color::new(136, 192, 208), // blue
-                code: Color::new(163, 190, 140), // green
-                dimmed: Color::new(143, 157, 175),
-                code_fence: Color::new(143, 157, 175),
-                rule: Color::new(143, 157, 175),
-                list_marker: Color::new(235, 203, 139), // yellow
-                blockquote_border: Color::new(143, 157, 175),
-                table_border: Color::new(143, 157, 175),
-            }
-        }
+    /// Apply inline code background style to text
+    pub fn inline_code_bg<'a, T: OwoColorize>(&self, text: &'a T) -> owo_colors::Styled<&'a T> {
+        text.style((&self.inline_code_bg).into())
     }
 }
 
-/// Theme registry for loading themes by name with automatic light/dark variant selection.
+/// Theme registry for loading prebuilt base16 themes from YAML files.
+///
+/// Themes are embedded at compile time using include_str! for zero runtime I/O.
+/// Supports all base16 color schemes in the themes directory.
 pub struct ThemeRegistry;
 
 impl ThemeRegistry {
-    /// Get a theme by name with automatic variant detection or explicit override.
+    /// Get a theme by name.
+    ///
+    /// Loads and parses the corresponding YAML theme file embedded at compile time.
+    /// Falls back to Nord theme if the requested theme is not found or parsing fails.
     pub fn get(name: &str) -> ThemeColors {
-        let (theme_name, explicit_variant) = if let Some((scheme, variant)) = name.split_once(':') {
-            let is_dark = match variant.to_lowercase().as_str() {
-                "light" => false,
-                "dark" => true,
-                _ => detect_is_dark(),
-            };
-            (scheme, Some(is_dark))
-        } else {
-            (name, None)
+        let yaml = match name.to_lowercase().as_str() {
+            "catppuccin-latte" => CATPPUCCIN_LATTE,
+            "catppuccin-mocha" => CATPPUCCIN_MOCHA,
+            "gruvbox-material-dark" => GRUVBOX_MATERIAL_DARK,
+            "gruvbox-material-light" => GRUVBOX_MATERIAL_LIGHT,
+            "nord-light" => NORD_LIGHT,
+            "nord" => NORD,
+            "oxocarbon-dark" => OXOCARBON_DARK,
+            "oxocarbon-light" => OXOCARBON_LIGHT,
+            "solarized-dark" => SOLARIZED_DARK,
+            "solarized-light" => SOLARIZED_LIGHT,
+            _ => NORD,
         };
 
-        let is_dark = explicit_variant.unwrap_or_else(detect_is_dark);
-
-        match theme_name.to_lowercase().as_str() {
-            "basic" => ThemeColors::basic(is_dark),
-            "monokai" => ThemeColors::monokai(is_dark),
-            "dracula" => ThemeColors::dracula(is_dark),
-            "solarized" => ThemeColors::solarized(is_dark),
-            "nord" => ThemeColors::nord(is_dark),
-            _ => ThemeColors::basic(is_dark),
-        }
+        serde_yml::from_str::<Base16Scheme>(yaml)
+            .ok()
+            .and_then(|scheme| ThemeColors::from_base16(&scheme))
+            .unwrap_or_else(|| {
+                serde_yml::from_str::<Base16Scheme>(NORD)
+                    .ok()
+                    .and_then(|scheme| ThemeColors::from_base16(&scheme))
+                    .expect("Failed to parse fallback Nord theme")
+            })
     }
 
-    /// List all available theme scheme names.
+    /// List all available theme names.
     pub fn available_themes() -> Vec<&'static str> {
-        vec!["basic", "monokai", "dracula", "solarized", "nord"]
+        vec![
+            "catppuccin-latte",
+            "catppuccin-mocha",
+            "gruvbox-material-dark",
+            "gruvbox-material-light",
+            "nord-light",
+            "nord",
+            "oxocarbon-dark",
+            "oxocarbon-light",
+            "solarized-dark",
+            "solarized-light",
+        ]
     }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn parse_hex_color_with_hash() {
+        let result = parse_hex_color("#FF8040");
+        assert_eq!(result, Some((255, 128, 64)));
+    }
+
+    #[test]
+    fn parse_hex_color_without_hash() {
+        let result = parse_hex_color("FF8040");
+        assert_eq!(result, Some((255, 128, 64)));
+    }
+
+    #[test]
+    fn parse_hex_color_lowercase() {
+        let result = parse_hex_color("#ff8040");
+        assert_eq!(result, Some((255, 128, 64)));
+    }
+
+    #[test]
+    fn parse_hex_color_invalid_length() {
+        assert_eq!(parse_hex_color("#FFF"), None);
+        assert_eq!(parse_hex_color("#FFFFFFF"), None);
+    }
+
+    #[test]
+    fn parse_hex_color_invalid_chars() {
+        assert_eq!(parse_hex_color("#GGGGGG"), None);
+        assert_eq!(parse_hex_color("#XYZ123"), None);
+    }
 
     #[test]
     fn color_new() {
@@ -369,12 +420,76 @@ mod tests {
     }
 
     #[test]
-    fn color_into_style_preserves_rgb() {
-        let color = Color::new(255, 0, 128);
-        let style: Style = color.into();
-        let styled_text = "Test".style(style);
-        let output = styled_text.to_string();
-        assert!(output.contains("Test"));
+    fn base16_scheme_deserializes() {
+        let yaml = r##"
+system: "base16"
+name: "Test Theme"
+author: "Test Author"
+variant: "dark"
+palette:
+  base00: "#000000"
+  base01: "#111111"
+  base02: "#222222"
+  base03: "#333333"
+  base04: "#444444"
+  base05: "#555555"
+  base06: "#666666"
+  base07: "#777777"
+  base08: "#888888"
+  base09: "#999999"
+  base0A: "#aaaaaa"
+  base0B: "#bbbbbb"
+  base0C: "#cccccc"
+  base0D: "#dddddd"
+  base0E: "#eeeeee"
+  base0F: "#ffffff"
+"##;
+        let scheme: Result<Base16Scheme, _> = serde_yml::from_str(yaml);
+        assert!(scheme.is_ok());
+    }
+
+    #[test]
+    fn theme_colors_from_base16() {
+        let yaml = r##"
+system: "base16"
+name: "Test Theme"
+author: "Test Author"
+variant: "dark"
+palette:
+  base00: "#000000"
+  base01: "#111111"
+  base02: "#222222"
+  base03: "#333333"
+  base04: "#444444"
+  base05: "#555555"
+  base06: "#666666"
+  base07: "#777777"
+  base08: "#ff0000"
+  base09: "#ff7f00"
+  base0A: "#ffff00"
+  base0B: "#00ff00"
+  base0C: "#00ffff"
+  base0D: "#0000ff"
+  base0E: "#ff00ff"
+  base0F: "#ffffff"
+"##;
+        let scheme: Base16Scheme = serde_yml::from_str(yaml).unwrap();
+        let theme = ThemeColors::from_base16(&scheme);
+        assert!(theme.is_some());
+
+        let theme = theme.unwrap();
+        assert_eq!(theme.body.r, 85); // base05 - #555555
+        assert_eq!(theme.heading.r, 0); // base0D - #0000ff
+        assert_eq!(theme.code.r, 0); // base0B - #00ff00
+        assert_eq!(theme.accent.r, 255); // base08 - #ff0000
+        assert_eq!(theme.emphasis.r, 255); // base09 - #ff7f00
+        assert_eq!(theme.strong.r, 255); // base0E - #ff00ff
+        assert_eq!(theme.link.r, 0); // base0C - #00ffff
+        assert_eq!(theme.inline_code_bg.r, 34); // base02 - #222222
+        assert_eq!(theme.ui_background.r, 0); // base00 - #000000
+        assert_eq!(theme.ui_border.r, 68); // base04 - #444444
+        assert_eq!(theme.ui_title.r, 102); // base06 - #666666
+        assert_eq!(theme.ui_text.r, 119); // base07 - #777777
     }
 
     #[test]
@@ -397,104 +512,83 @@ mod tests {
     }
 
     #[test]
-    fn theme_basic_dark_variant() {
-        let theme = ThemeColors::basic(true);
-        let text = "Test";
-        let styled = theme.heading(&text);
-        assert!(styled.to_string().contains("Test"));
-    }
-
-    #[test]
-    fn theme_basic_light_variant() {
-        let theme = ThemeColors::basic(false);
-        let text = "Test";
-        let styled = theme.heading(&text);
-        assert!(styled.to_string().contains("Test"));
-    }
-
-    #[test]
-    fn theme_monokai_variants() {
-        let dark = ThemeColors::monokai(true);
-        let light = ThemeColors::monokai(false);
-        assert!(dark.heading(&"Test").to_string().contains("Test"));
-        assert!(light.heading(&"Test").to_string().contains("Test"));
-    }
-
-    #[test]
-    fn theme_dracula_variants() {
-        let dark = ThemeColors::dracula(true);
-        let light = ThemeColors::dracula(false);
-        assert!(dark.heading(&"Test").to_string().contains("Test"));
-        assert!(light.heading(&"Test").to_string().contains("Test"));
-    }
-
-    #[test]
-    fn theme_solarized_variants() {
-        let dark = ThemeColors::solarized(true);
-        let light = ThemeColors::solarized(false);
-        assert!(dark.heading(&"Test").to_string().contains("Test"));
-        assert!(light.heading(&"Test").to_string().contains("Test"));
-    }
-
-    #[test]
-    fn theme_nord_variants() {
-        let dark = ThemeColors::nord(true);
-        let light = ThemeColors::nord(false);
-        assert!(dark.heading(&"Test").to_string().contains("Test"));
-        assert!(light.heading(&"Test").to_string().contains("Test"));
-    }
-
-    #[test]
-    fn theme_registry_get_basic() {
-        let theme = ThemeRegistry::get("basic");
-        let text = "Test";
-        let styled = theme.heading(&text);
-        assert!(styled.to_string().contains("Test"));
-    }
-
-    #[test]
-    fn theme_registry_explicit_variant_dark() {
-        let theme = ThemeRegistry::get("basic:dark");
-        let text = "Test";
-        let styled = theme.heading(&text);
-        assert!(styled.to_string().contains("Test"));
-    }
-
-    #[test]
-    fn theme_registry_explicit_variant_light() {
-        let theme = ThemeRegistry::get("solarized:light");
-        let text = "Test";
-        let styled = theme.heading(&text);
-        assert!(styled.to_string().contains("Test"));
-    }
-
-    #[test]
-    fn theme_registry_get_monokai() {
-        let theme = ThemeRegistry::get("monokai");
-        let text = "Test";
-        let styled = theme.heading(&text);
-        assert!(styled.to_string().contains("Test"));
-    }
-
-    #[test]
-    fn theme_registry_get_dracula() {
-        let theme = ThemeRegistry::get("dracula");
-        let text = "Test";
-        let styled = theme.heading(&text);
-        assert!(styled.to_string().contains("Test"));
-    }
-
-    #[test]
-    fn theme_registry_get_solarized() {
-        let theme = ThemeRegistry::get("solarized");
-        let text = "Test";
-        let styled = theme.heading(&text);
-        assert!(styled.to_string().contains("Test"));
-    }
-
-    #[test]
     fn theme_registry_get_nord() {
         let theme = ThemeRegistry::get("nord");
+        let text = "Test";
+        let styled = theme.heading(&text);
+        assert!(styled.to_string().contains("Test"));
+        assert_eq!(theme.heading.r, 129);
+        assert_eq!(theme.heading.g, 161);
+        assert_eq!(theme.heading.b, 193);
+    }
+
+    #[test]
+    fn theme_registry_get_nord_light() {
+        let theme = ThemeRegistry::get("nord-light");
+        let text = "Test";
+        let styled = theme.heading(&text);
+        assert!(styled.to_string().contains("Test"));
+    }
+
+    #[test]
+    fn theme_registry_get_catppuccin_mocha() {
+        let theme = ThemeRegistry::get("catppuccin-mocha");
+        let text = "Test";
+        let styled = theme.heading(&text);
+        assert!(styled.to_string().contains("Test"));
+    }
+
+    #[test]
+    fn theme_registry_get_catppuccin_latte() {
+        let theme = ThemeRegistry::get("catppuccin-latte");
+        let text = "Test";
+        let styled = theme.heading(&text);
+        assert!(styled.to_string().contains("Test"));
+    }
+
+    #[test]
+    fn theme_registry_get_gruvbox_dark() {
+        let theme = ThemeRegistry::get("gruvbox-material-dark");
+        let text = "Test";
+        let styled = theme.heading(&text);
+        assert!(styled.to_string().contains("Test"));
+    }
+
+    #[test]
+    fn theme_registry_get_gruvbox_light() {
+        let theme = ThemeRegistry::get("gruvbox-material-light");
+        let text = "Test";
+        let styled = theme.heading(&text);
+        assert!(styled.to_string().contains("Test"));
+    }
+
+    #[test]
+    fn theme_registry_get_oxocarbon_dark() {
+        let theme = ThemeRegistry::get("oxocarbon-dark");
+        let text = "Test";
+        let styled = theme.heading(&text);
+        assert!(styled.to_string().contains("Test"));
+    }
+
+    #[test]
+    fn theme_registry_get_oxocarbon_light() {
+        let theme = ThemeRegistry::get("oxocarbon-light");
+        let text = "Test";
+        let styled = theme.heading(&text);
+        assert!(styled.to_string().contains("Test"));
+    }
+
+    #[test]
+    fn theme_registry_get_solarized_dark() {
+        let theme = ThemeRegistry::get("solarized-dark");
+        let text = "Test";
+        let styled = theme.heading(&text);
+        assert!(styled.to_string().contains("Test"));
+    }
+
+    #[test]
+    fn theme_registry_get_solarized_light() {
+        let theme = ThemeRegistry::get("solarized-light");
         let text = "Test";
         let styled = theme.heading(&text);
         assert!(styled.to_string().contains("Test"));
@@ -510,8 +604,8 @@ mod tests {
 
     #[test]
     fn theme_registry_case_insensitive() {
-        let theme1 = ThemeRegistry::get("BASIC");
-        let theme2 = ThemeRegistry::get("basic");
+        let theme1 = ThemeRegistry::get("NORD");
+        let theme2 = ThemeRegistry::get("nord");
         let text = "Test";
         assert!(theme1.heading(&text).to_string().contains("Test"));
         assert!(theme2.heading(&text).to_string().contains("Test"));
@@ -520,35 +614,23 @@ mod tests {
     #[test]
     fn theme_registry_available_themes() {
         let themes = ThemeRegistry::available_themes();
-        assert!(themes.contains(&"basic"));
-        assert!(themes.contains(&"monokai"));
-        assert!(themes.contains(&"dracula"));
-        assert!(themes.contains(&"solarized"));
         assert!(themes.contains(&"nord"));
-        assert_eq!(themes.len(), 5);
+        assert!(themes.contains(&"nord-light"));
+        assert!(themes.contains(&"catppuccin-mocha"));
+        assert!(themes.contains(&"catppuccin-latte"));
+        assert!(themes.contains(&"gruvbox-material-dark"));
+        assert!(themes.contains(&"gruvbox-material-light"));
+        assert!(themes.contains(&"oxocarbon-dark"));
+        assert!(themes.contains(&"oxocarbon-light"));
+        assert!(themes.contains(&"solarized-dark"));
+        assert!(themes.contains(&"solarized-light"));
+        assert_eq!(themes.len(), 10);
     }
 
     #[test]
     fn detect_is_dark_returns_bool() {
         let result = detect_is_dark();
-        assert!(result == true || result == false);
-    }
-
-    #[test]
-    fn theme_colors_stores_correct_colors() {
-        let theme = ThemeColors::basic(true);
-        assert_eq!(theme.heading.r, 66);
-        assert_eq!(theme.heading.g, 190);
-        assert_eq!(theme.heading.b, 101);
-        assert!(theme.heading_bold);
-    }
-
-    #[test]
-    fn theme_colors_heading_applies_bold() {
-        let theme = ThemeColors::basic(true);
-        let text = "Bold Heading";
-        let styled = theme.heading(&text);
-        assert!(styled.to_string().contains("Bold Heading"));
+        assert!(result || !result);
     }
 
     #[test]
@@ -565,15 +647,28 @@ mod tests {
         assert!(theme.list_marker(&"Test").to_string().contains("Test"));
         assert!(theme.blockquote_border(&"Test").to_string().contains("Test"));
         assert!(theme.table_border(&"Test").to_string().contains("Test"));
+        assert!(theme.emphasis(&"Test").to_string().contains("Test"));
+        assert!(theme.strong(&"Test").to_string().contains("Test"));
+        assert!(theme.link(&"Test").to_string().contains("Test"));
+        assert!(theme.inline_code_bg(&"Test").to_string().contains("Test"));
+
+        // UI colors don't need style methods, just verify they exist
+        let _ = theme.ui_border;
+        let _ = theme.ui_title;
+        let _ = theme.ui_text;
+        let _ = theme.ui_background;
     }
 
     #[test]
-    fn theme_colors_light_vs_dark() {
-        let dark = ThemeColors::basic(true);
-        let light = ThemeColors::basic(false);
-
-        assert_eq!(dark.body.r, 242);
-        assert_eq!(light.body.r, 57);
-        assert_ne!(dark.body.r, light.body.r);
+    fn all_embedded_themes_parse() {
+        for theme_name in ThemeRegistry::available_themes() {
+            let theme = ThemeRegistry::get(theme_name);
+            let styled = theme.heading(&"Test");
+            assert!(
+                styled.to_string().contains("Test"),
+                "Theme '{}' failed to parse or apply styles",
+                theme_name
+            );
+        }
     }
 }

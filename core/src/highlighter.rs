@@ -196,6 +196,14 @@ mod tests {
             list_marker: Color::new(150, 150, 150),
             blockquote_border: Color::new(120, 120, 120),
             table_border: Color::new(120, 120, 120),
+            emphasis: Color::new(160, 160, 160),
+            strong: Color::new(190, 190, 190),
+            link: Color::new(140, 180, 220),
+            inline_code_bg: Color::new(50, 50, 50),
+            ui_border: Color::new(80, 80, 80),
+            ui_title: Color::new(200, 200, 200),
+            ui_text: Color::new(220, 220, 220),
+            ui_background: Color::new(30, 30, 30),
         };
 
         assert!(is_dark_theme(&dark_theme));
@@ -215,6 +223,14 @@ mod tests {
             list_marker: Color::new(50, 50, 50),
             blockquote_border: Color::new(80, 80, 80),
             table_border: Color::new(80, 80, 80),
+            emphasis: Color::new(70, 70, 70),
+            strong: Color::new(40, 40, 40),
+            link: Color::new(0, 80, 160),
+            inline_code_bg: Color::new(240, 240, 240),
+            ui_border: Color::new(180, 180, 180),
+            ui_title: Color::new(40, 40, 40),
+            ui_text: Color::new(20, 20, 20),
+            ui_background: Color::new(250, 250, 250),
         };
 
         assert!(!is_dark_theme(&light_theme));
