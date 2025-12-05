@@ -77,6 +77,9 @@ fn print_block<W: std::io::Write>(
         Block::Admonition(admonition) => {
             print_admonition(writer, admonition, theme, width, indent)?;
         }
+        Block::Image { path, alt } => {
+            print_image(writer, path, alt, theme, indent)?;
+        }
     }
 
     Ok(())
@@ -293,6 +296,26 @@ fn print_admonition<W: std::io::Write>(
 
     let bottom_border = "\u{2570}".to_string() + &"\u{2500}".repeat(box_width.saturating_sub(2)) + "\u{256F}";
     writeln!(writer, "{}{}", indent_str, color.to_owo_color(&bottom_border))?;
+
+    Ok(())
+}
+
+/// Print an image placeholder with path and alt text
+fn print_image<W: std::io::Write>(
+    writer: &mut W, path: &str, alt: &str, theme: &ThemeColors, indent: usize,
+) -> std::io::Result<()> {
+    let indent_str = " ".repeat(indent);
+    let icon = "\u{1F5BC}";
+
+    write!(writer, "{indent_str}{}", theme.heading(&format!("{icon} Image: ")))?;
+
+    if !alt.is_empty() {
+        writeln!(writer, "{}", theme.heading(&alt))?;
+    } else {
+        writeln!(writer)?;
+    }
+
+    writeln!(writer, "{}  Path: {}", indent_str, theme.body(&path))?;
 
     Ok(())
 }

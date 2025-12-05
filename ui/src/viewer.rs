@@ -1,14 +1,16 @@
 use lantern_core::{slide::Slide, theme::ThemeColors};
 use ratatui::{
     Frame,
-    layout::Rect,
+    layout::{Alignment, Constraint, Direction, Flex, Layout, Rect},
     style::{Color, Modifier, Style},
     text::{Line, Span},
     widgets::{Block, Borders, Padding, Paragraph, Wrap},
 };
+use ratatui_image::{Resize, StatefulImage};
 use std::time::Instant;
 
-use crate::renderer::render_slide_content;
+use crate::image::ImageManager;
+use crate::renderer::render_slide_with_images;
 
 #[derive(Clone, Copy)]
 struct Stylesheet {
@@ -69,6 +71,7 @@ pub struct SlideViewer {
     stylesheet: Stylesheet,
     theme_name: String,
     start_time: Option<Instant>,
+    image_manager: ImageManager,
 }
 
 impl SlideViewer {
@@ -82,6 +85,7 @@ impl SlideViewer {
             filename: None,
             theme_name: "oxocarbon-dark".to_string(),
             start_time: None,
+            image_manager: ImageManager::default(),
         }
     }
 
@@ -90,6 +94,11 @@ impl SlideViewer {
         slides: Vec<Slide>, theme: ThemeColors, filename: Option<String>, theme_name: String,
         start_time: Option<Instant>,
     ) -> Self {
+        let mut image_manager = ImageManager::default();
+        if let Some(ref path) = filename {
+            image_manager.set_base_path(path);
+        }
+
         Self {
             slides,
             current_index: 0,
@@ -98,6 +107,7 @@ impl SlideViewer {
             filename,
             theme_name,
             start_time,
+            image_manager,
         }
     }
 
@@ -153,9 +163,9 @@ impl SlideViewer {
     }
 
     /// Render the current slide to the frame
-    pub fn render(&self, frame: &mut Frame, area: Rect) {
+    pub fn render(&mut self, frame: &mut Frame, area: Rect) {
         if let Some(slide) = self.current_slide() {
-            let content = render_slide_content(&slide.blocks, &self.theme());
+            let (content, images) = render_slide_with_images(&slide.blocks, &self.theme());
             let border_color = self.stylesheet.border_color();
             let title_color = self.stylesheet.title_color();
 
@@ -166,9 +176,102 @@ impl SlideViewer {
                 .title_style(Style::default().fg(title_color).add_modifier(Modifier::BOLD))
                 .padding(Stylesheet::slide_padding());
 
-            let paragraph = Paragraph::new(content).block(block).wrap(Wrap { trim: false });
+            let inner_area = block.inner(area);
+            frame.render_widget(block, area);
 
-            frame.render_widget(paragraph, area);
+            let text_height = content.height() as u16;
+            let mut text_content = Some(content);
+
+            if !images.is_empty() {
+                let total_images = images.len() as u16;
+                let border_height_per_image = 1;
+                let caption_height_per_image = 1;
+                let min_image_content_height = 1;
+                let min_height_per_image =
+                    border_height_per_image + min_image_content_height + caption_height_per_image;
+                let min_images_height = total_images * min_height_per_image;
+
+                let available_height = inner_area.height;
+                let max_text_height = available_height.saturating_sub(min_images_height);
+                let text_area_height = text_height.min(max_text_height);
+
+                let chunks = Layout::default()
+                    .direction(Direction::Vertical)
+                    .constraints([Constraint::Length(text_area_height), Constraint::Min(min_images_height)])
+                    .split(inner_area);
+
+                if chunks[0].height > 0 {
+                    if let Some(text) = text_content.take() {
+                        let paragraph = Paragraph::new(text).wrap(Wrap { trim: false });
+                        frame.render_widget(paragraph, chunks[0]);
+                    }
+                }
+
+                let constraints: Vec<Constraint> = (0..total_images)
+                    .map(|_| Constraint::Ratio(1, total_images as u32))
+                    .collect();
+
+                let image_chunks = Layout::default()
+                    .direction(Direction::Vertical)
+                    .constraints(constraints)
+                    .split(chunks[1]);
+
+                for (idx, img_info) in images.iter().enumerate() {
+                    if let Ok(protocol) = self.image_manager.load_image(&img_info.path) {
+                        let image_area = image_chunks[idx];
+
+                        let horizontal_chunks = Layout::default()
+                            .direction(Direction::Horizontal)
+                            .constraints([
+                                Constraint::Percentage(25),
+                                Constraint::Percentage(50),
+                                Constraint::Percentage(25),
+                            ])
+                            .split(image_area);
+
+                        let centered_area = horizontal_chunks[1];
+
+                        let image_block = Block::default()
+                            .borders(Borders::ALL)
+                            .border_style(Style::default().fg(border_color));
+
+                        let image_inner = image_block.inner(centered_area);
+                        frame.render_widget(image_block, centered_area);
+
+                        let caption_height = if img_info.alt.is_empty() { 0 } else { 1 };
+                        let content_chunks = Layout::default()
+                            .direction(Direction::Vertical)
+                            .constraints([Constraint::Length(caption_height), Constraint::Min(1)])
+                            .flex(Flex::Center)
+                            .split(image_inner);
+
+                        if caption_height > 0 {
+                            let caption_style = Style::default()
+                                .fg(Color::Rgb(150, 150, 150))
+                                .add_modifier(Modifier::ITALIC);
+                            let caption = Paragraph::new(Line::from(Span::styled(&img_info.alt, caption_style)))
+                                .alignment(Alignment::Center);
+                            frame.render_widget(caption, content_chunks[0]);
+                        }
+
+                        let resize = Resize::Fit(None);
+                        let image_size = protocol.size_for(resize, content_chunks[1]);
+
+                        let [centered_area] = Layout::horizontal([Constraint::Length(image_size.width)])
+                            .flex(Flex::Center)
+                            .areas(content_chunks[1]);
+                        let [image_area] = Layout::vertical([Constraint::Length(image_size.height)])
+                            .flex(Flex::Center)
+                            .areas(centered_area);
+
+                        let image_widget = StatefulImage::default();
+                        frame.render_stateful_widget(image_widget, image_area, protocol);
+                    }
+                }
+            } else if let Some(text) = text_content.take() {
+                let paragraph = Paragraph::new(text).wrap(Wrap { trim: false });
+                frame.render_widget(paragraph, inner_area);
+            }
         }
     }
 

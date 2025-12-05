@@ -5,6 +5,8 @@ edition = "2024"
 
 [dependencies]
 ratatui = "0.29.0"
+ratatui-image = "8.0.2"
+image = "0.25"
 crossterm = "0.29.0"
 lantern-core = { path = "../core" }
 owo-colors = "4.2.3"

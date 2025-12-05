@@ -2,6 +2,17 @@
 
 > A modern, fast, terminal presentation tool inspired by [`maaslalani/slides`](https://github.com/maaslalani/slides), built with Rust.
 
+<details>
+<summary>
+Now with image support (if your terminal supports it!)
+</summary>
+
+![Rendered on Ghostty](./assets/ghostty.png)
+
+![Rendered on iTerm2](./assets/iterm2.png)
+
+</details>
+
 ## Quickstart
 
 ### Installation

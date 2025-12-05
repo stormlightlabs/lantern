@@ -50,6 +50,8 @@ pub enum Block {
     Table(Table),
     /// Admonition/alert box with type, optional title, and content
     Admonition(Admonition),
+    /// Image with path and alt text
+    Image { path: String, alt: String },
 }
 
 /// Styled text span within a block

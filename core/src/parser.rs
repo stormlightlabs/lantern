@@ -215,6 +215,7 @@ fn parse_slide(markdown: String) -> Result<Slide> {
                         ordered: first.is_some(),
                         items: Vec::new(),
                         current_item: Vec::new(),
+                        pending_nested: None,
                     });
                 }
                 Tag::BlockQuote(_) => {
@@ -255,6 +256,9 @@ fn parse_slide(markdown: String) -> Result<Slide> {
                 Tag::Strikethrough => {
                     current_style.strikethrough = true;
                 }
+                Tag::Image { dest_url, .. } => {
+                    block_stack.push(BlockBuilder::Image { path: dest_url.to_string(), alt: String::new() });
+                }
                 _ => {}
             },
 
@@ -272,7 +276,13 @@ fn parse_slide(markdown: String) -> Result<Slide> {
                 TagEnd::List(_) => {
                     if let Some(builder) = block_stack.pop() {
                         let block = builder.build();
-                        if let Some(BlockBuilder::Admonition { blocks: adm_blocks, .. }) = block_stack.last_mut() {
+
+                        if let Some(BlockBuilder::List { pending_nested, .. }) = block_stack.last_mut() {
+                            if let Block::List(list) = block {
+                                *pending_nested = Some(list);
+                            }
+                        } else if let Some(BlockBuilder::Admonition { blocks: adm_blocks, .. }) = block_stack.last_mut()
+                        {
                             adm_blocks.push(block);
                         } else {
                             blocks.push(block);
@@ -320,9 +330,11 @@ fn parse_slide(markdown: String) -> Result<Slide> {
                     }
                 }
                 TagEnd::Item => {
-                    if let Some(BlockBuilder::List { current_item, items, .. }) = block_stack.last_mut() {
+                    if let Some(BlockBuilder::List { current_item, items, pending_nested, .. }) = block_stack.last_mut()
+                    {
                         if !current_item.is_empty() {
-                            items.push(ListItem { spans: std::mem::take(current_item), nested: None });
+                            let nested = pending_nested.take().map(Box::new);
+                            items.push(ListItem { spans: std::mem::take(current_item), nested });
                         }
                     }
                 }
@@ -334,6 +346,16 @@ fn parse_slide(markdown: String) -> Result<Slide> {
                 }
                 TagEnd::Strikethrough => {
                     current_style.strikethrough = false;
+                }
+                TagEnd::Image => {
+                    if let Some(builder) = block_stack.pop() {
+                        let block = builder.build();
+                        if let Some(BlockBuilder::Admonition { blocks: adm_blocks, .. }) = block_stack.last_mut() {
+                            adm_blocks.push(block);
+                        } else {
+                            blocks.push(block);
+                        }
+                    }
                 }
                 _ => {}
             },
@@ -421,6 +443,7 @@ enum BlockBuilder {
         ordered: bool,
         items: Vec<ListItem>,
         current_item: Vec<TextSpan>,
+        pending_nested: Option<List>,
     },
     BlockQuote {
         blocks: Vec<Block>,
@@ -437,6 +460,10 @@ enum BlockBuilder {
         admonition_type: AdmonitionType,
         title: Option<String>,
         blocks: Vec<Block>,
+    },
+    Image {
+        path: String,
+        alt: String,
     },
 }
 
@@ -460,6 +487,9 @@ impl BlockBuilder {
                 if !text.is_empty() {
                     current_cell.push(TextSpan { text, style: current_style.clone() });
                 }
+            }
+            Self::Image { alt, .. } => {
+                alt.push_str(&text);
             }
             Self::Admonition { .. } => {}
             _ => {}
@@ -493,6 +523,7 @@ impl BlockBuilder {
             Self::Admonition { admonition_type, title, blocks } => {
                 Block::Admonition(Admonition { admonition_type, title, blocks })
             }
+            Self::Image { path, alt } => Block::Image { path, alt },
         }
     }
 }
@@ -596,6 +627,92 @@ Content after code block
                 assert!(!list.ordered);
                 assert_eq!(list.items.len(), 2);
                 assert_eq!(list.items[0].spans[0].text, "Item 1");
+            }
+            _ => panic!("Expected list"),
+        }
+    }
+
+    #[test]
+    fn parse_nested_unordered_list() {
+        let markdown = "- Item 1\n  - Nested 1\n  - Nested 2\n- Item 2";
+        let slides = parse_slides(markdown).unwrap();
+
+        match &slides[0].blocks[0] {
+            Block::List(list) => {
+                assert!(!list.ordered);
+                assert_eq!(list.items.len(), 2);
+                assert_eq!(list.items[0].spans[0].text, "Item 1");
+
+                let nested = list.items[0].nested.as_ref().expect("Expected nested list");
+                assert!(!nested.ordered);
+                assert_eq!(nested.items.len(), 2);
+                assert_eq!(nested.items[0].spans[0].text, "Nested 1");
+                assert_eq!(nested.items[1].spans[0].text, "Nested 2");
+            }
+            _ => panic!("Expected list"),
+        }
+    }
+
+    #[test]
+    fn parse_nested_ordered_list() {
+        let markdown = "1. First item\n   1. Nested first\n   2. Nested second\n2. Second item";
+        let slides = parse_slides(markdown).unwrap();
+
+        match &slides[0].blocks[0] {
+            Block::List(list) => {
+                assert!(list.ordered);
+                assert_eq!(list.items.len(), 2);
+                assert_eq!(list.items[0].spans[0].text, "First item");
+
+                let nested = list.items[0].nested.as_ref().expect("Expected nested list");
+                assert!(nested.ordered);
+                assert_eq!(nested.items.len(), 2);
+                assert_eq!(nested.items[0].spans[0].text, "Nested first");
+                assert_eq!(nested.items[1].spans[0].text, "Nested second");
+            }
+            _ => panic!("Expected list"),
+        }
+    }
+
+    #[test]
+    fn parse_mixed_nested_list() {
+        let markdown = "- Unordered item\n  1. Ordered nested\n  2. Another ordered\n- Second unordered";
+        let slides = parse_slides(markdown).unwrap();
+
+        match &slides[0].blocks[0] {
+            Block::List(list) => {
+                assert!(!list.ordered);
+                assert_eq!(list.items.len(), 2);
+                assert_eq!(list.items[0].spans[0].text, "Unordered item");
+
+                let nested = list.items[0].nested.as_ref().expect("Expected nested list");
+                assert!(nested.ordered);
+                assert_eq!(nested.items.len(), 2);
+                assert_eq!(nested.items[0].spans[0].text, "Ordered nested");
+            }
+            _ => panic!("Expected list"),
+        }
+    }
+
+    #[test]
+    fn parse_deeply_nested_list() {
+        let markdown = "- Level 1\n  - Level 2\n    - Level 3\n  - Back to level 2";
+        let slides = parse_slides(markdown).unwrap();
+
+        match &slides[0].blocks[0] {
+            Block::List(list) => {
+                assert!(!list.ordered);
+                assert_eq!(list.items.len(), 1);
+                assert_eq!(list.items[0].spans[0].text, "Level 1");
+
+                let level2 = list.items[0].nested.as_ref().expect("Expected level 2");
+                assert_eq!(level2.items.len(), 2);
+                assert_eq!(level2.items[0].spans[0].text, "Level 2");
+                assert_eq!(level2.items[1].spans[0].text, "Back to level 2");
+
+                let level3 = level2.items[0].nested.as_ref().expect("Expected level 3");
+                assert_eq!(level3.items.len(), 1);
+                assert_eq!(level3.items[0].spans[0].text, "Level 3");
             }
             _ => panic!("Expected list"),
         }
@@ -813,5 +930,78 @@ This is a helpful tip
     fn admonition_type_from_str_invalid() {
         assert!("invalid".parse::<AdmonitionType>().is_err());
         assert!("".parse::<AdmonitionType>().is_err());
+    }
+
+    #[test]
+    fn parse_image() {
+        let markdown = "![Test image](path/to/image.png)";
+        let slides = parse_slides(markdown).unwrap();
+        assert_eq!(slides.len(), 1);
+
+        match &slides[0].blocks[0] {
+            Block::Image { path, alt } => {
+                assert_eq!(path, "path/to/image.png");
+                assert_eq!(alt, "Test image");
+            }
+            _ => panic!("Expected image block"),
+        }
+    }
+
+    #[test]
+    fn parse_image_no_alt_text() {
+        let markdown = "![](image.jpg)";
+        let slides = parse_slides(markdown).unwrap();
+
+        match &slides[0].blocks[0] {
+            Block::Image { path, alt } => {
+                assert_eq!(path, "image.jpg");
+                assert_eq!(alt, "");
+            }
+            _ => panic!("Expected image block"),
+        }
+    }
+
+    #[test]
+    fn parse_image_with_absolute_path() {
+        let markdown = "![Diagram](/home/user/diagram.svg)";
+        let slides = parse_slides(markdown).unwrap();
+
+        match &slides[0].blocks[0] {
+            Block::Image { path, alt } => {
+                assert_eq!(path, "/home/user/diagram.svg");
+                assert_eq!(alt, "Diagram");
+            }
+            _ => panic!("Expected image block"),
+        }
+    }
+
+    #[test]
+    fn parse_multiple_images() {
+        let markdown = "![First](image1.png)\n\n![Second](image2.png)";
+        let slides = parse_slides(markdown).unwrap();
+
+        let image_blocks: Vec<_> = slides[0]
+            .blocks
+            .iter()
+            .filter(|b| matches!(b, Block::Image { .. }))
+            .collect();
+
+        assert_eq!(image_blocks.len(), 2);
+
+        match image_blocks[0] {
+            Block::Image { path, alt } => {
+                assert_eq!(path, "image1.png");
+                assert_eq!(alt, "First");
+            }
+            _ => panic!("Expected image block"),
+        }
+
+        match image_blocks[1] {
+            Block::Image { path, alt } => {
+                assert_eq!(path, "image2.png");
+                assert_eq!(alt, "Second");
+            }
+            _ => panic!("Expected image block"),
+        }
     }
 }

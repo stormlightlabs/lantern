@@ -9,6 +9,38 @@ use ratatui::{
 };
 use unicode_width::UnicodeWidthChar;
 
+/// Image information extracted from blocks
+pub struct ImageInfo {
+    pub path: String,
+    pub alt: String,
+}
+
+/// Render a slide's blocks and extract images
+///
+/// Returns both the text content and a list of images found in the blocks.
+pub fn render_slide_with_images(blocks: &[Block], theme: &ThemeColors) -> (Text<'static>, Vec<ImageInfo>) {
+    let mut lines = Vec::new();
+    let mut images = Vec::new();
+
+    for block in blocks {
+        match block {
+            Block::Heading { level, spans } => render_heading(*level, spans, theme, &mut lines),
+            Block::Paragraph { spans } => render_paragraph(spans, theme, &mut lines),
+            Block::Code(code_block) => render_code_block(code_block, theme, &mut lines),
+            Block::List(list) => render_list(list, theme, &mut lines, 0),
+            Block::Rule => render_rule(theme, &mut lines),
+            Block::BlockQuote { blocks } => render_blockquote(blocks, theme, &mut lines),
+            Block::Table(table) => render_table(table, theme, &mut lines),
+            Block::Admonition(admonition) => render_admonition(admonition, theme, &mut lines),
+            Block::Image { path, alt } => images.push(ImageInfo { path: path.clone(), alt: alt.clone() }),
+        }
+
+        lines.push(Line::raw(""));
+    }
+
+    (Text::from(lines), images)
+}
+
 /// Render a slide's blocks into ratatui Text
 ///
 /// Converts slide blocks into styled ratatui text with theming applied.
@@ -25,6 +57,8 @@ pub fn render_slide_content(blocks: &[Block], theme: &ThemeColors) -> Text<'stat
             Block::BlockQuote { blocks } => render_blockquote(blocks, theme, &mut lines),
             Block::Table(table) => render_table(table, theme, &mut lines),
             Block::Admonition(admonition) => render_admonition(admonition, theme, &mut lines),
+            // Images are handled separately when using render_slide_with_images
+            Block::Image { .. } => {}
         }
 
         lines.push(Line::raw(""));
@@ -34,14 +68,20 @@ pub fn render_slide_content(blocks: &[Block], theme: &ThemeColors) -> Text<'stat
 }
 
 /// Get heading prefix using Unicode block symbols
+/// 1. (*h1*) Large block / heavy fill (`U+2589`)
+/// 2. (*h2*) Dark shade (`U+2593`)
+/// 3. (*h3*) Medium shade (`U+2592`)
+/// 4. (*h4*) Light shade (`U+2591`)
+/// 5. (*h5*) Left half block (`U+258C`)
+/// 6. (*h6*) Left half block (`U+258C`)
 fn get_prefix(level: u8) -> &'static str {
     match level {
-        1 => "▉ ", // Large block / heavy fill (U+2589)
-        2 => "▓ ", // Dark shade (U+2593)
-        3 => "▒ ", // Medium shade (U+2592)
-        4 => "░ ", // Light shade (U+2591)
-        5 => "▌ ", // Left half block (U+258C)
-        _ => "▌ ", // Left half block (U+258C) for h6
+        1 => "▉ ",
+        2 => "▓ ",
+        3 => "▒ ",
+        4 => "░ ",
+        5 => "▌ ",
+        _ => "▌ ",
     }
 }
 
@@ -116,8 +156,7 @@ fn render_list(list: &List, theme: &ThemeColors, lines: &mut Vec<Line<'static>>,
 /// Render a horizontal rule
 fn render_rule(theme: &ThemeColors, lines: &mut Vec<Line<'static>>) {
     let rule_style = to_ratatui_style(&theme.rule, false);
-    let rule = "─".repeat(60);
-    lines.push(Line::from(Span::styled(rule, rule_style)));
+    lines.push(Line::from(Span::styled("─".repeat(60), rule_style)));
 }
 
 /// Render a blockquote with indentation
@@ -367,7 +406,6 @@ mod tests {
     fn to_ratatui_style_converts_color() {
         let color = Color::new(255, 128, 64);
         let style = to_ratatui_style(&color, false);
-
         assert_eq!(style.fg, Some(ratatui::style::Color::Rgb(255, 128, 64)));
     }
 
@@ -375,7 +413,6 @@ mod tests {
     fn to_ratatui_style_applies_bold() {
         let color = Color::new(100, 150, 200);
         let style = to_ratatui_style(&color, true);
-
         assert_eq!(style.fg, Some(ratatui::style::Color::Rgb(100, 150, 200)));
         assert!(style.add_modifier.contains(Modifier::BOLD));
     }
@@ -414,5 +451,48 @@ mod tests {
             style.fg,
             Some(ratatui::style::Color::Rgb(theme.code.r, theme.code.g, theme.code.b))
         );
+    }
+
+    #[test]
+    fn render_slide_with_images_extracts_image() {
+        let blocks =
+            vec![lantern_core::slide::Block::Image { path: "test.png".to_string(), alt: "Test Image".to_string() }];
+        let theme = ThemeColors::default();
+        let (_text, images) = render_slide_with_images(&blocks, &theme);
+
+        assert_eq!(images.len(), 1);
+        assert_eq!(images[0].path, "test.png");
+        assert_eq!(images[0].alt, "Test Image");
+    }
+
+    #[test]
+    fn render_slide_with_images_extracts_multiple() {
+        let blocks = vec![
+            lantern_core::slide::Block::Image { path: "image1.png".to_string(), alt: "First".to_string() },
+            lantern_core::slide::Block::Image { path: "image2.png".to_string(), alt: "Second".to_string() },
+        ];
+        let theme = ThemeColors::default();
+        let (_text, images) = render_slide_with_images(&blocks, &theme);
+
+        assert_eq!(images.len(), 2);
+        assert_eq!(images[0].path, "image1.png");
+        assert_eq!(images[0].alt, "First");
+        assert_eq!(images[1].path, "image2.png");
+        assert_eq!(images[1].alt, "Second");
+    }
+
+    #[test]
+    fn render_slide_with_mixed_content() {
+        let blocks = vec![
+            lantern_core::slide::Block::Heading { level: 1, spans: vec![TextSpan::plain("Title")] },
+            lantern_core::slide::Block::Image { path: "diagram.png".to_string(), alt: "Diagram".to_string() },
+            lantern_core::slide::Block::Paragraph { spans: vec![TextSpan::plain("Description")] },
+        ];
+        let theme = ThemeColors::default();
+        let (text, images) = render_slide_with_images(&blocks, &theme);
+
+        assert!(!text.lines.is_empty());
+        assert_eq!(images.len(), 1);
+        assert_eq!(images[0].path, "diagram.png");
     }
 }
