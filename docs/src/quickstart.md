@@ -7,7 +7,7 @@ From a local clone:
 ```bash
 git clone https://github.com/stormlightlabs/lantern.git
 cd lantern
-cargo install --path cli
+cargo install --path crates/cli
 ```
 
 You can also run it without installing:
