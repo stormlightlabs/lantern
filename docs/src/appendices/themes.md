@@ -1,150 +1,124 @@
 # Themes
 
-lantern uses the [Base16](https://github.com/chriskempson/base16) theming system for customizing the appearance of your presentations. Base16 provides a standardized way to define color schemes that work consistently across dark and light backgrounds.
+Lantern uses embedded [Base16](https://github.com/chriskempson/base16) themes.
 
-## Base16 Color System
+Each theme defines 16 colors, then lantern maps those colors to slide content,
+syntax highlighting, admonitions, and UI chrome.
 
-Base16 defines 16 semantic colors (base00 through base0F) that serve specific purposes:
+## Available themes
 
-### Background Shades
+Built-in theme names:
 
-- **base00-03**: Background colors from darkest to lighter (or lightest to darker in light themes)
+- `catppuccin-latte`
+- `catppuccin-mocha`
+- `gruvbox-material-dark`
+- `gruvbox-material-light`
+- `nord`
+- `nord-light`
+- `oxocarbon-dark`
+- `oxocarbon-light`
+- `solarized-dark`
+- `solarized-light`
 
-### Foreground Shades
+`default` is also accepted. It resolves to `oxocarbon-dark` or `oxocarbon-light` based on terminal
+background detection.
 
-- **base04-07**: Foreground colors from darker to lightest (or lightest to darker in light themes)
+If you request an unknown theme while presenting or printing, lantern falls back to `nord`.
+Use `lantern check --strict deck.md` to warn on unknown themes.
 
-### Accent Colors
+## Using a theme
 
-- **base08**: Red (variables, deletion)
-- **base09**: Orange (integers, constants, emphasis)
-- **base0A**: Yellow (classes, list markers)
-- **base0B**: Green (strings, code blocks)
-- **base0C**: Cyan (links, support functions)
-- **base0D**: Blue (functions, headings)
-- **base0E**: Magenta (keywords, strong emphasis)
-- **base0F**: Brown (deprecated, special)
-
-## Color Mapping
-
-lantern maps base16 colors to semantic roles:
-
-### Content Colors
-
-- **Headings** (base0D): Blue accent for slide titles
-- **Body text** (base05): Main foreground color
-- **Strong/Bold** (base0E): Magenta for emphasis
-- **Emphasis/Italic** (base09): Orange for subtle emphasis
-- **Code blocks** (base0B): Green for fenced code
-- **Inline code background** (base02): Selection background
-- **Links** (base0C): Cyan for hyperlinks
-- **Accents** (base08): Red for highlights
-- **List markers** (base0A): Yellow for bullets/numbers
-- **Dimmed elements** (base03): Comments, borders, rules
-
-### UI Chrome Colors
-
-- **UI background** (base00): Status bar and UI backgrounds
-- **UI borders** (base04): Window and panel borders
-- **UI titles** (base06): Bright text for UI elements
-- **UI text** (base07): Brightest text for status bars
-
-## Available Themes
-
-lantern includes 10 prebuilt base16 themes, embedded at compile time:
-
-### Catppuccin
-
-- **catppuccin-mocha** - Dark theme with pastel colors
-- **catppuccin-latte** - Light theme with warm tones
-
-### Gruvbox Material
-
-- **gruvbox-material-dark** - Retro dark theme with warm colors
-- **gruvbox-material-light** - Retro light theme
-
-### Nord
-
-- **nord** - Arctic-inspired dark theme with cool blues
-- **nord-light** - Nord palette adapted for light backgrounds
-
-### Oxocarbon
-
-- **oxocarbon-dark** - IBM's modern dark theme (default)
-- **oxocarbon-light** - IBM's modern light theme
-
-### Solarized
-
-- **solarized-dark** - Ethan Schoonover's precision dark palette
-- **solarized-light** - Solarized adapted for light backgrounds
-
-## Using Themes
-
-### Via Frontmatter
-
-Specify a theme in your slide deck's YAML frontmatter:
+### Front matter
 
 ```markdown
 ---
 theme: catppuccin-mocha
 ---
 
-# Your First Slide
-
-Content here
+# First slide
 ```
 
-Or with TOML frontmatter:
+TOML front matter works too:
 
 ```markdown
 +++
 theme = "nord"
 +++
 
-# Your First Slide
+# First slide
 ```
 
-### Via Command Line
-
-Override the theme with the `--theme` flag:
+### Command line
 
 ```bash
 lantern present presentation.md --theme nord
 lantern print presentation.md --theme catppuccin-latte
 ```
 
-### Via Environment Variable
-
-Set a default theme using the `LANTERN_THEME` environment variable:
+### Environment variable
 
 ```bash
-export LANTERN_THEME=gruvbox-material-dark
+export SLIDES_THEME=gruvbox-material-dark
 lantern present presentation.md
 ```
 
-## Theme Priority
+## Theme priority
 
-When multiple theme sources are specified, the priority order is:
+Lantern resolves the theme in this order:
 
-1. Command line flag (`--theme`)
-2. Frontmatter metadata (`theme:` field)
-3. Environment variable (`LANTERN_THEME`)
-4. Default theme (nord for dark terminals, nord-light for light terminals)
+1. `--theme` on the command line
+2. `theme` in front matter
+3. `SLIDES_THEME`
+4. Detected default, `oxocarbon-dark` or `oxocarbon-light`
 
-## Custom Themes (Coming Soon)
+## Base16 mapping
 
-Future versions will support loading custom base16 YAML themes from:
+Content colors:
 
-- `~/.config/slides/themes/` directory
-- `--theme-file` command line flag
+- Headings: `base0D`
+- Body text: `base05`
+- Bold text: `base0E`
+- Italic text: `base09`
+- Code blocks: `base0B`
+- Inline code background: `base02`
+- Links: `base0C`
+- List markers: `base0A`
+- Rules, borders, and dimmed text: `base03`
 
-Base16 YAML format:
+UI colors:
+
+- UI background: `base00`
+- Borders and status bar background: `base02`
+- UI titles: `base06`
+- UI text: `base05`
+
+Admonition colors:
+
+- Note: `base0D`
+- Tip: `base0E`
+- Warning: `base0A`
+- Danger: `base08`
+- Success: `base0B`
+- Info: `base0C`
+
+## Validate a theme file
+
+Lantern can validate a Base16 YAML file:
+
+```bash
+lantern check --theme theme.yml
+```
+
+The current CLI can validate custom theme files, but it cannot load them for rendering yet.
+Theme loading from a path is planned but not implemented.
+
+A valid theme uses this shape:
 
 ```yaml
 system: "base16"
-name: "My Custom Theme"
+name: "My Theme"
 author: "Your Name"
-variant: "dark"  # or "light"
+variant: "dark"
 palette:
   base00: "#1a1b26"
   base01: "#16161e"
@@ -164,17 +138,14 @@ palette:
   base0F: "#f7768e"
 ```
 
-You can find thousands of base16 themes at the [Base16 Gallery](https://tinted-theming.github.io/tinted-gallery/).
+## Rendering notes
 
-## Rendering Features
+The printer and TUI use Unicode symbols for readable terminal output:
 
-The printer uses Unicode box-drawing characters for clean visual output:
-
-- `▉ ▓ ▒ ░ ▌` for heading levels (h1-h6)
+- `▉ ▓ ▒ ░ ▌` for heading levels
 - `─` and `═` for horizontal rules
-- `│` for blockquote borders and table dividers
-- `•` for unordered list markers
+- `│` for blockquotes and table dividers
+- `•` for unordered lists
 
-Tables automatically calculate column widths based on content and available terminal width.
-
-Code blocks support syntax highlighting through [Syntect](https://github.com/trishume/syntect), which automatically adapts to your selected theme's light/dark variant.
+Code blocks use Syntect for syntax highlighting.
+Lantern chooses a light or dark Syntect theme based on the active lantern theme variant.

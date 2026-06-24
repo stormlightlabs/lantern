@@ -1,133 +1,91 @@
 # Extensions
 
-## Admonitions/Alerts
+Lantern currently has one markdown extension: admonitions. These are highlighted blocks for notes,
+warnings, tips, and similar callouts.
 
-Admonitions (also called alerts or callouts) are special highlighted blocks that draw attention to important information. Lantern supports both GitHub-flavored markdown syntax and a custom fence syntax.
+## Supported types
 
-### Supported Types
+| Type        | Aliases                |
+| ----------- | ---------------------- |
+| `note`      |                        |
+| `info`      |                        |
+| `tip`       | `hint`                 |
+| `important` |                        |
+| `warning`   | `caution`, `attention` |
+| `danger`    | `error`                |
+| `success`   | `check`, `done`        |
+| `question`  | `help`, `faq`          |
+| `example`   |                        |
+| `quote`     |                        |
+| `abstract`  | `summary`, `tldr`      |
+| `todo`      |                        |
+| `bug`       |                        |
+| `failure`   | `fail`, `missing`      |
 
-All admonitions are rendered with colored borders and icons:
-
-- **Note/Info** - Blue - General information
-- **Tip/Hint/Important** - Purple - Helpful suggestions
-- **Warning/Caution/Attention** - Yellow - Important warnings
-- **Danger/Error** - Red - Critical issues
-- **Success/Check/Done** - Green - Success messages
-- **Question/Help/FAQ** - Cyan - Questions and help
-- **Example** - Green - Example content
-- **Quote** - Cyan - Quotations
-- **Abstract/Summary/TLDR** - Blue - Summaries
-- **Todo** - Cyan - Todo items
-- **Bug** - Red - Bug reports
-- **Failure/Fail/Missing** - Red - Failures
-
-### GitHub/Obsidian Syntax
+## GitHub and Obsidian syntax
 
 ```markdown
 > [!NOTE]
-> Useful information that users should know, even when skimming content.
+> Useful context for the slide.
 
 > [!TIP]
-> Helpful advice for doing things better or more easily.
+> A practical suggestion.
 
 > [!IMPORTANT]
-> Key information users need to know to achieve their goal.
+> Something the audience should not miss.
 
 > [!WARNING]
-> Urgent info that needs immediate user attention to avoid problems.
+> A risk or caveat.
 
 > [!CAUTION]
-> Advises about risks or negative outcomes of certain actions.
+> A stronger warning.
 ```
 
-### Obsidian
+You can add a title after the marker:
+
+```markdown
+> [!WARNING] Production caveat
+> This path assumes the database is already migrated.
+```
+
+Obsidian-style lowercase markers work too:
 
 ```markdown
 > [!quote]
-> Lorem ipsum dolor sit amet
-
-> [!quote] Optional Title
-> Lorem ipsum dolor sit amet
+> The quote text.
 
 > [!example]
-> Lorem ipsum dolor sit amet
+> Example content.
 
 > [!bug]
-> Lorem ipsum dolor sit amet
-
-> [!danger]
-> Lorem ipsum dolor sit amet
-
-> [!failure]
-> Lorem ipsum dolor sit amet
-
-> [!warning]
-> Lorem ipsum dolor sit amet
-
-> [!question]
-> Lorem ipsum dolor sit amet
-
-> [!success]
-> Lorem ipsum dolor sit amet
-
-> [!tip]
-> Lorem ipsum dolor sit amet
-
-> [!todo]
-> Lorem ipsum dolor sit amet
-
-> [!abstract]
-> Lorem ipsum dolor sit amet
-
-> [!note]
-> Lorem ipsum dolor sit amet
+> Known issue.
 ```
 
-#### Aliases
+## Fence syntax
 
-| Main     | Alias              |
-| -------- | ------------------ |
-| danger   | error              |
-| failure  | fail, missing      |
-| warning  | caution, attention |
-| question | help, faq          |
-| success  | check, done        |
-| tip      | hint, important    |
-| abstract | summary, tldr      |
-
-### Fence Syntax
-
-You can also use a custom fence syntax with `:::`:
+Lantern also accepts a simple fence form:
 
 ```markdown
 :::note
-This is a note using fence syntax
+This is a note.
 :::
 
 :::warning
-This is a warning with fence syntax
+This is a warning.
 :::
 
 :::tip
-Pro tip: You can use either syntax!
+This is a tip.
 :::
 ```
 
-### Custom Titles
+Fence admonitions currently accept the type only.
 
-For GitHub/Obsidian syntax, you can provide a custom title:
+Custom titles are supported for the blockquote form, not for fence admonitions.
 
-```markdown
-> [!WARNING] Custom Warning Title
-> This warning has a custom title instead of the default "Warning"
-```
+## Rendering
 
-### Implementation Details
+Admonitions render with themed colors, Unicode icons, and rounded borders.
 
-Admonitions are:
-
-- Parsed during markdown preprocessing
-- Converted to internal AST representation
-- Rendered with themed colors from the active color scheme
-- Displayed with Unicode icons (ⓘ, ⚠, ✓, etc.)
-- Support nested markdown content (paragraphs, lists, code, etc.)
+Their content is parsed into lantern's normal slide blocks, so paragraphs, lists,
+and code blocks can appear inside an admonition.

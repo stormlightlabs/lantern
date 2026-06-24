@@ -1,48 +1,51 @@
 # Quickstart
 
-Get started with lantern in minutes.
-
 ## Installation
 
-Currently, you'll need to build from source:
+From a local clone:
 
 ```bash
-git clone https://github.com/yourusername/lantern.git
+git clone https://github.com/stormlightlabs/lantern.git
 cd lantern
-cargo build --release
+cargo install --path cli
 ```
 
-The binary will be available at `target/release/lantern`.
+You can also run it without installing:
 
-## Creating Your First Deck
+```bash
+cargo run -p lantern-cli -- present presentation.md
+```
 
-Create a new markdown file called `presentation.md`:
+The installed binary is named `lantern`.
+
+## Create a deck
+
+Create `presentation.md`:
 
 ````markdown
 ---
-theme: default
+theme: nord
 author: Your Name
 ---
 
-# Welcome to Slides
+# Welcome to lantern
 
-A modern terminal-based presentation tool
+A terminal presentation tool built with Rust.
 
 ---
 
 ## Features
 
-- Parse markdown into slides
-- Interactive TUI navigation with full keyboard support
-- Speaker notes with toggle visibility
-- Live presentation timer
-- Status bar with slide count and navigation hints
-- Print to stdout
-- Syntax highlighting (coming soon)
+- Markdown slides split with `---`
+- Base16 themes
+- Syntax-highlighted code blocks
+- Tables, lists, blockquotes, and horizontal rules
+- Image rendering in terminals supported by `ratatui-image`
+- GitHub and Obsidian-style admonitions
 
 ---
 
-## Code Example
+## Code
 
 ```rust
 fn main() {
@@ -50,148 +53,152 @@ fn main() {
 }
 ```
 
-Supports multiple languages with syntax highlighting.
+---
+
+## Images
+
+![A local image](./image.png)
 
 ---
 
-## Lists and Formatting
+## Done
 
-- Unordered lists with bullets
-- **Bold text** for emphasis
-- *Italic text* for style
-- `inline code` for commands
-
----
-
-# Thank You
-
-Questions?
+Press `q` to quit.
 ````
 
-## Presenting Your Slides
-
-Run the interactive TUI presenter:
+## Present
 
 ```bash
 lantern present presentation.md
 ```
 
-### Navigation Keys
+Use a theme from the command line:
 
-- `→`, `j`, `Space`, `n` - Next slide
-- `←`, `k`, `p` - Previous slide
-- `Shift+N` - Toggle speaker notes
-- `q`, `Ctrl+C`, `Esc` - Quit presentation
+```bash
+lantern present presentation.md --theme catppuccin-mocha
+```
 
-## Printing to Stdout
+## Print
 
-Print all slides to stdout with formatting:
+Print a deck to stdout:
 
 ```bash
 lantern print presentation.md
 ```
 
-Adjust output width:
+Set the output width:
 
 ```bash
 lantern print presentation.md --width 100
 ```
 
-Use a specific theme:
+## Check a deck
+
+Validate a slide deck:
 
 ```bash
-lantern print presentation.md --theme nord
+lantern check presentation.md
 ```
 
-## Slide Separators
+Run stricter checks:
 
-Slides are separated by three dashes on a line by themselves:
+```bash
+lantern check presentation.md --strict
+```
+
+Validate a Base16 theme file:
+
+```bash
+lantern check --theme theme.yml
+```
+
+## Navigation
+
+| Key                    | Action                                       |
+| ---------------------- | -------------------------------------------- |
+| `→`, `j`, `Space`, `n` | Next slide                                   |
+| `←`, `k`, `p`          | Previous slide                               |
+| `?`                    | Toggle help line                             |
+| `Shift+N`              | Toggle notes panel if a slide contains notes |
+| `q`, `Ctrl+C`, `Esc`   | Quit                                         |
+
+The input layer reserves `/` and `Ctrl+F` for search, but the search UI is not implemented yet.
+
+## Slide separators
+
+Put three dashes on a line by themselves between slides:
 
 ```markdown
 # Slide 1
 
-Content here
+Content here.
 
 ---
 
 # Slide 2
 
-More content
+More content.
 ```
 
-## Front Matter
+Separators inside fenced code blocks are ignored.
 
-Optional metadata at the start of your file:
+## Front matter
 
-YAML format:
+Lantern accepts YAML front matter:
 
 ```yaml
 ---
-theme: dark
+theme: oxocarbon-dark
 author: Jane Doe
+date: 2026-06-24
+paging: "Slide %d / %d"
 ---
 ```
 
-TOML format:
+It also accepts TOML front matter:
 
 ```toml
 +++
-theme = "monokai"
-author = "John Smith"
+theme = "nord"
+author = "Jane Doe"
 +++
 ```
 
-## Supported Markdown
+Current metadata fields are `theme`, `author`, `date`, and `paging`.
 
-Currently supported:
+Theme selection is implemented.
 
-- Headings (H1-H6)
-- Paragraphs with inline formatting (bold, italic, strikethrough, code)
-- Code blocks with language tags
-- Lists (ordered and unordered with nesting)
+The UI currently uses a fixed status-bar format, so `author`, `date`, and `paging` are parsed but
+not displayed in the presenter.
+
+## Supported markdown
+
+- Headings `#` through `######`
+- Paragraphs
+- Bold, italic, strikethrough, and inline code
+- Fenced and indented code blocks
+- Ordered and unordered lists with nesting
 - Horizontal rules
 - Blockquotes
-- Tables with automatic column width calculation and proper Unicode borders
+- Tables
+- Images
+- GitHub and Obsidian-style admonitions
 
-## Speaker Notes
+Speaker notes are represented in the internal slide model and can be toggled in the UI, but
+markdown parsing for `::: notes` has not been implemented yet.
 
-Add speaker notes to any slide using the `::: notes` directive:
+## Environment variables
 
-```markdown
-# Your Slide Title
-
-Main content visible to the audience.
-
-::: notes
-These are your speaker notes.
-Press Shift+N to toggle their visibility.
-They appear in a separate panel during presentation.
-:::
-```
-
-## Status Bar
-
-The status bar at the bottom displays:
-
-- Filename of the current presentation
-- Current slide number / Total slides
-- Active theme name
-- Navigation hints
-- Notes visibility indicator (✓ when shown)
-- Elapsed presentation time (HH:MM:SS)
-
-## Environment Variables
-
-Customize defaults with environment variables:
+Set the default theme with `SLIDES_THEME`:
 
 ```bash
-# Set default theme
-export LANTERN_THEME=nord
-
-# Set default author (used if not in frontmatter)
-export USER=YourName
+export SLIDES_THEME=nord
 ```
 
-## Themes
+If no author appears in front matter, lantern uses `USER` or `USERNAME`.
 
-See the [Themes](./appendices/themes.md) reference for details on all available themes and customization options.
+## More reference
+
+- [Themes](./appendices/themes.md)
+- [Extensions](./extensions.md)
+- [Logging](./logging.md)

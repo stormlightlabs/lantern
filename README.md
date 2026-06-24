@@ -1,6 +1,6 @@
 # lantern
 
-> A modern, fast, terminal presentation tool inspired by [`maaslalani/slides`](https://github.com/maaslalani/slides), built with Rust.
+> A modern, fast terminal presentation tool built with Rust.
 
 <details>
 <summary>
@@ -54,8 +54,8 @@ A terminal presentation tool built with Rust
 
 - Base16 theming system
 - Syntax highlighting
-- Live reload
-- Export to image/video
+- Tables, images, and admonitions
+- Print to stdout
 
 ---
 
@@ -72,7 +72,6 @@ fn main() {
 ## That's it
 
 Press `q` to quit, `←/→` to navigate
-
 ````
 
 ### Present
@@ -84,33 +83,38 @@ lantern present presentation.md
 # Print to stdout
 lantern print presentation.md
 
-# With custom theme
+# With a built-in theme
 lantern present presentation.md --theme catppuccin-mocha
 ```
 
 ### Navigation
 
-| Key           | Action              |
-| ------------- | ------------------- |
-| `→`, `j`, `n` | Next slide          |
-| `←`, `k`, `p` | Previous slide      |
-| `q`           | Quit                |
+| Key           | Action         |
+| ------------- | -------------- |
+| `→`, `j`, `n` | Next slide     |
+| `←`, `k`, `p` | Previous slide |
+| `q`           | Quit           |
 
 ## Design Principles
 
-__Color as Data:__
+**Color as Data:**
 All color use flows through typed wrappers using `owo-colors`. No ad-hoc ANSI escapes.
 
-__Themeable:__
-Built on the [Base16](https://github.com/chriskempson/base16) theming system with 10 prebuilt themes (Catppuccin, Nord, Gruvbox Material, Solarized, Oxocarbon). Each theme defines 16 semantic colors mapped to content and UI elements. Themes can be selected via frontmatter, CLI flags, or environment variables.
+**Themeable:**
+Built on the [Base16](https://github.com/chriskempson/base16) theming system with 10 prebuilt themes
+(Catppuccin, Nord, Gruvbox Material, Solarized, Oxocarbon).
 
-__Reproducible:__
+Each theme defines 16 semantic colors mapped to content and UI elements.
+
+Themes can be selected via frontmatter, CLI flags, or environment variables.
+
+**Reproducible:**
 Everything is reproducible in plain text — decks can render without TUI (using `lantern print`).
 
-__Composable:__
+**Composable:**
 Parser → Model → Renderer are independent modules with tests and traits.
 
-__Portable:__
+**Portable:**
 Runs on any terminal supporting UTF-8; dependencies limited to core crates.
 
 ## Testing
@@ -135,3 +139,8 @@ cargo llvm-cov
 # Open the browser
 cargo llvm-cov --open
 ```
+
+## Inspiration
+
+- [`maaslalani/slides`](https://github.com/maaslalani/slides)
+- [`d0c-s4vage/lookatme`](https://github.com/d0c-s4vage/lookatme)
