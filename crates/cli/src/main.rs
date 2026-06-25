@@ -13,7 +13,7 @@ use tracing::Level;
 
 /// A modern terminal-based presentation tool
 #[derive(Parser, Debug)]
-#[command(name = "slides")]
+#[command(name = "lantern")]
 #[command(version, about, long_about = None)]
 struct ArgParser {
     /// Set logging level (error, warn, info, debug, trace)
@@ -252,7 +252,7 @@ mod tests {
 
     #[test]
     fn cli_present_command() {
-        let cli = ArgParser::parse_from(["slides", "present", "test.md"]);
+        let cli = ArgParser::parse_from(["lantern", "present", "test.md"]);
         match cli.command {
             Commands::Present { file, theme } => {
                 assert_eq!(file, PathBuf::from("test.md"));
@@ -264,7 +264,7 @@ mod tests {
 
     #[test]
     fn cli_present_with_theme() {
-        let cli = ArgParser::parse_from(["slides", "present", "test.md", "--theme", "dark"]);
+        let cli = ArgParser::parse_from(["lantern", "present", "test.md", "--theme", "dark"]);
         match cli.command {
             Commands::Present { file, theme } => {
                 assert_eq!(file, PathBuf::from("test.md"));
@@ -276,7 +276,7 @@ mod tests {
 
     #[test]
     fn cli_print_command() {
-        let cli = ArgParser::parse_from(["slides", "print", "test.md", "-w", "100"]);
+        let cli = ArgParser::parse_from(["lantern", "print", "test.md", "-w", "100"]);
         match cli.command {
             Commands::Print { file, width, theme } => {
                 assert_eq!(file, PathBuf::from("test.md"));
@@ -289,7 +289,7 @@ mod tests {
 
     #[test]
     fn cli_init_command() {
-        let cli = ArgParser::parse_from(["slides", "init", "--name", "my-deck.md"]);
+        let cli = ArgParser::parse_from(["lantern", "init", "--name", "my-deck.md"]);
         match cli.command {
             Commands::Init { path, name } => {
                 assert_eq!(path, PathBuf::from("."));
@@ -301,7 +301,7 @@ mod tests {
 
     #[test]
     fn cli_check_command() {
-        let cli = ArgParser::parse_from(["slides", "check", "test.md", "--strict"]);
+        let cli = ArgParser::parse_from(["lantern", "check", "test.md", "--strict"]);
         match cli.command {
             Commands::Check { file, strict, theme } => {
                 assert_eq!(file, PathBuf::from("test.md"));
@@ -314,7 +314,7 @@ mod tests {
 
     #[test]
     fn cli_check_theme_command() {
-        let cli = ArgParser::parse_from(["slides", "check", "theme.yml", "--theme"]);
+        let cli = ArgParser::parse_from(["lantern", "check", "theme.yml", "--theme"]);
         match cli.command {
             Commands::Check { file, strict, theme } => {
                 assert_eq!(file, PathBuf::from("theme.yml"));
