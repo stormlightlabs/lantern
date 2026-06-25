@@ -9,8 +9,8 @@ Tasks moved from [ROADMAP.md](ROADMAP.md).
 - [x] **Status Bar**: Display slide count, filename, clock, and theme name.
 - [x] **Color Styling**: Apply consistent color palette via `owo-colors`. Define traits like `ThemeColor`.
 - [x] **Unicode Headings**: Use Unicode block symbols (▉▓▒░▌) for h1-h6 instead of markdown `#` syntax.
-- [ ] **Configurable Themes**: Base16 YAML theme system with 10 prebuilt themes.
-- [ ] **Configurable Themes**: Add user theme loading from config directory and CLI `--theme-file` flag.
+- [x] **Configurable Themes**: Base16 YAML theme system with 10 prebuilt themes.
+- [x] **Configurable Themes**: Add user theme loading from config directory and CLI `--theme-file` flag.
 
 ## Code Highlighting via Syntect
 

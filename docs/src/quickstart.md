@@ -188,14 +188,21 @@ Set the default theme with `SLIDES_THEME`:
 export SLIDES_THEME=nord
 ```
 
+Render with a Base16 YAML theme file:
+
+```bash
+lantern present presentation.md --theme-file ./theme.yml
+```
+
+Named custom themes can also be placed in `$XDG_CONFIG_HOME/lantern/themes`,
+`$LANTERN_CONFIG_HOME/themes`, or `~/.config/lantern/themes`.
+
 If no author appears in front matter, lantern uses `USER` or `USERNAME`.
 
 ## Current limitations
 
 - Search keys are reserved, but the search UI is not implemented yet.
 - `author`, `date`, and `paging` are parsed from front matter but not displayed in the presenter.
-- Custom theme files can be validated with `lantern check --theme`, but rendering still uses
-  built-in themes.
 
 ## More reference
 

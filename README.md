@@ -114,7 +114,8 @@ Built on the [Base16](https://github.com/chriskempson/base16) theming system wit
 
 Each theme defines 16 semantic colors mapped to content and UI elements.
 
-Themes can be selected via frontmatter, CLI flags, or environment variables.
+Themes can be selected via frontmatter, CLI flags, `--theme-file`, config-directory theme files, or
+environment variables.
 
 **Reproducible:**
 Everything is reproducible in plain text — decks can render without TUI (using `lantern print`).

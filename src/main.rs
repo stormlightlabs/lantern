@@ -43,6 +43,9 @@ enum Commands {
         /// Theme to use for presentation
         #[arg(short, long)]
         theme: Option<String>,
+        /// Path to a Base16 YAML theme file
+        #[arg(long)]
+        theme_file: Option<PathBuf>,
     },
 
     /// Print slides to stdout with formatting
@@ -55,6 +58,9 @@ enum Commands {
         /// Theme to use for coloring
         #[arg(short, long)]
         theme: Option<String>,
+        /// Path to a Base16 YAML theme file
+        #[arg(long)]
+        theme_file: Option<PathBuf>,
     },
 
     /// Initialize a new slide deck with example content
@@ -113,14 +119,14 @@ fn main() {
     }
 
     match cli.command {
-        Commands::Present { file, theme } => {
-            if let Err(e) = run_present(&file, theme) {
+        Commands::Present { file, theme, theme_file } => {
+            if let Err(e) = run_present(&file, theme, theme_file.as_deref()) {
                 eprintln!("Error: {e}");
                 std::process::exit(1);
             }
         }
-        Commands::Print { file, width, theme } => {
-            if let Err(e) = run_print(&file, width, theme) {
+        Commands::Print { file, width, theme, theme_file } => {
+            if let Err(e) = run_print(&file, width, theme, theme_file.as_deref()) {
                 eprintln!("Error: {e}");
                 std::process::exit(1);
             }
@@ -138,7 +144,16 @@ fn main() {
     }
 }
 
-fn load_deck(file: &Path, theme_arg: Option<&str>) -> io::Result<LoadedDeck> {
+fn load_theme(theme_name: &str, theme_file: Option<&Path>) -> io::Result<(ThemeColors, String)> {
+    if let Some(path) = theme_file {
+        let theme = ThemeRegistry::load_file(path)?;
+        return Ok((theme, path.display().to_string()));
+    }
+
+    Ok((ThemeRegistry::load_named(theme_name)?, theme_name.to_string()))
+}
+
+fn load_deck(file: &Path, theme_arg: Option<&str>, theme_file: Option<&Path>) -> io::Result<LoadedDeck> {
     let markdown = std::fs::read_to_string(file)
         .map_err(|e| io::Error::new(e.kind(), format!("Failed to read file {}: {}", file.display(), e)))?;
 
@@ -150,7 +165,7 @@ fn load_deck(file: &Path, theme_arg: Option<&str>) -> io::Result<LoadedDeck> {
     }
 
     let theme_name = theme_arg.map(str::to_string).unwrap_or_else(|| meta.theme.clone());
-    let theme = ThemeRegistry::get(&theme_name);
+    let (theme, theme_name) = load_theme(&theme_name, theme_file)?;
     let filename = file
         .file_name()
         .and_then(|n| n.to_str())
@@ -205,13 +220,13 @@ fn is_deck_reload_event(event: &Event) -> bool {
 }
 
 fn reload_deck_if_changed(
-    file: &Path, theme_arg: Option<&str>, reload_events: &Receiver<()>,
+    file: &Path, theme_arg: Option<&str>, theme_file: Option<&Path>, reload_events: &Receiver<()>,
 ) -> io::Result<Option<PresentationUpdate>> {
     if reload_events.try_iter().count() == 0 {
         return Ok(None);
     }
 
-    match load_deck(file, theme_arg) {
+    match load_deck(file, theme_arg, theme_file) {
         Ok(deck) => {
             tracing::info!("Reloaded slides from: {}", file.display());
             Ok(Some(PresentationUpdate {
@@ -227,13 +242,14 @@ fn reload_deck_if_changed(
     }
 }
 
-fn run_present(file: &PathBuf, theme_arg: Option<String>) -> io::Result<()> {
+fn run_present(file: &Path, theme_arg: Option<String>, theme_file: Option<&Path>) -> io::Result<()> {
     tracing::info!("Presenting slides from: {}", file.display());
 
-    let deck = load_deck(file, theme_arg.as_deref())?;
+    let deck = load_deck(file, theme_arg.as_deref(), theme_file)?;
     tracing::info!(
-        "Theme selection: CLI arg={:?}, frontmatter={}, final={}",
+        "Theme selection: CLI arg={:?}, theme file={:?}, frontmatter={}, final={}",
         theme_arg,
+        theme_file,
         deck.meta.theme,
         deck.theme_name
     );
@@ -250,7 +266,7 @@ fn run_present(file: &PathBuf, theme_arg: Option<String>) -> io::Result<()> {
 
         let mut app = App::new(deck.slides, deck.theme, deck.filename, deck.meta, deck.theme_name);
         app.run(&mut terminal, || {
-            reload_deck_if_changed(file, theme_arg.as_deref(), &reload_events)
+            reload_deck_if_changed(file, theme_arg.as_deref(), theme_file, &reload_events)
         })?;
 
         Ok(())
@@ -315,7 +331,7 @@ fn run_check(file: &Path, strict: bool, is_theme: bool) -> io::Result<()> {
     Ok(())
 }
 
-fn run_print(file: &PathBuf, width: usize, theme_arg: Option<String>) -> io::Result<()> {
+fn run_print(file: &PathBuf, width: usize, theme_arg: Option<String>, theme_file: Option<&Path>) -> io::Result<()> {
     tracing::info!("Printing slides from: {} (width: {})", file.display(), width);
 
     let markdown = std::fs::read_to_string(file)
@@ -331,7 +347,7 @@ fn run_print(file: &PathBuf, width: usize, theme_arg: Option<String>) -> io::Res
     let theme_name = theme_arg.unwrap_or_else(|| meta.theme.clone());
     tracing::debug!("Using theme: {}", theme_name);
 
-    let theme = ThemeRegistry::get(&theme_name);
+    let (theme, _) = load_theme(&theme_name, theme_file)?;
 
     lantern_cli::printer::print_slides_to_stdout(&slides, &theme, width)?;
 
@@ -346,9 +362,10 @@ mod tests {
     fn cli_present_command() {
         let cli = ArgParser::parse_from(["lantern", "present", "test.md"]);
         match cli.command {
-            Commands::Present { file, theme } => {
+            Commands::Present { file, theme, theme_file } => {
                 assert_eq!(file, PathBuf::from("test.md"));
                 assert_eq!(theme, None);
+                assert_eq!(theme_file, None);
             }
             _ => panic!("Expected Present command"),
         }
@@ -358,9 +375,23 @@ mod tests {
     fn cli_present_with_theme() {
         let cli = ArgParser::parse_from(["lantern", "present", "test.md", "--theme", "dark"]);
         match cli.command {
-            Commands::Present { file, theme } => {
+            Commands::Present { file, theme, theme_file } => {
                 assert_eq!(file, PathBuf::from("test.md"));
                 assert_eq!(theme, Some("dark".to_string()));
+                assert_eq!(theme_file, None);
+            }
+            _ => panic!("Expected Present command"),
+        }
+    }
+
+    #[test]
+    fn cli_present_with_theme_file() {
+        let cli = ArgParser::parse_from(["lantern", "present", "test.md", "--theme-file", "theme.yml"]);
+        match cli.command {
+            Commands::Present { file, theme, theme_file } => {
+                assert_eq!(file, PathBuf::from("test.md"));
+                assert_eq!(theme, None);
+                assert_eq!(theme_file, Some(PathBuf::from("theme.yml")));
             }
             _ => panic!("Expected Present command"),
         }
@@ -370,10 +401,11 @@ mod tests {
     fn cli_print_command() {
         let cli = ArgParser::parse_from(["lantern", "print", "test.md", "-w", "100"]);
         match cli.command {
-            Commands::Print { file, width, theme } => {
+            Commands::Print { file, width, theme, theme_file } => {
                 assert_eq!(file, PathBuf::from("test.md"));
                 assert_eq!(width, 100);
                 assert_eq!(theme, None);
+                assert_eq!(theme_file, None);
             }
             _ => panic!("Expected Print command"),
         }
@@ -425,7 +457,7 @@ mod tests {
         let content = "# Test Slide\n\nThis is a test paragraph.\n\n---\n\n# Second Slide\n\n- Item 1\n- Item 2";
         std::fs::write(&test_file, content).expect("Failed to write test file");
 
-        let result = run_print(&test_file, 80, None);
+        let result = run_print(&test_file, 80, None, None);
         assert!(result.is_ok());
 
         std::fs::remove_file(&test_file).ok();
@@ -438,7 +470,7 @@ mod tests {
 
         std::fs::write(&test_file, "").expect("Failed to write test file");
 
-        let result = run_print(&test_file, 80, None);
+        let result = run_print(&test_file, 80, None, None);
         assert!(result.is_err());
 
         std::fs::remove_file(&test_file).ok();
@@ -447,7 +479,7 @@ mod tests {
     #[test]
     fn run_print_nonexistent_file() {
         let test_file = PathBuf::from("/nonexistent/file.md");
-        let result = run_print(&test_file, 80, None);
+        let result = run_print(&test_file, 80, None, None);
         assert!(result.is_err());
     }
 
@@ -456,10 +488,10 @@ mod tests {
         let temp_dir = std::env::temp_dir();
         let test_file = temp_dir.join("test_themed_slides.md");
 
-        let content = "---\ntheme: dark\n---\n# Test Slide\n\nThis is a test paragraph.";
+        let content = "---\ntheme: nord\n---\n# Test Slide\n\nThis is a test paragraph.";
         std::fs::write(&test_file, content).expect("Failed to write test file");
 
-        let result = run_print(&test_file, 80, None);
+        let result = run_print(&test_file, 80, None, None);
         assert!(result.is_ok());
 
         std::fs::remove_file(&test_file).ok();
@@ -470,13 +502,53 @@ mod tests {
         let temp_dir = std::env::temp_dir();
         let test_file = temp_dir.join("test_override_slides.md");
 
-        let content = "---\ntheme: light\n---\n# Test Slide\n\nThis is a test paragraph.";
+        let content = "---\ntheme: nord\n---\n# Test Slide\n\nThis is a test paragraph.";
         std::fs::write(&test_file, content).expect("Failed to write test file");
 
-        let result = run_print(&test_file, 80, Some("monokai".to_string()));
+        let result = run_print(&test_file, 80, Some("catppuccin-mocha".to_string()), None);
         assert!(result.is_ok());
 
         std::fs::remove_file(&test_file).ok();
+    }
+
+    #[test]
+    fn run_print_with_theme_file() {
+        let temp_dir = std::env::temp_dir();
+        let test_file = temp_dir.join("test_theme_file_slides.md");
+        let theme_file = temp_dir.join("test_theme_file.yml");
+
+        let content = "# Test Slide\n\nThis is a test paragraph.";
+        let theme = r###"
+system: "base16"
+name: "Test Theme"
+author: "Test Author"
+variant: "dark"
+palette:
+  base00: "#000000"
+  base01: "#111111"
+  base02: "#222222"
+  base03: "#333333"
+  base04: "#444444"
+  base05: "#555555"
+  base06: "#666666"
+  base07: "#777777"
+  base08: "#888888"
+  base09: "#999999"
+  base0A: "#aaaaaa"
+  base0B: "#bbbbbb"
+  base0C: "#cccccc"
+  base0D: "#dddddd"
+  base0E: "#eeeeee"
+  base0F: "#ffffff"
+"###;
+        std::fs::write(&test_file, content).expect("Failed to write test file");
+        std::fs::write(&theme_file, theme).expect("Failed to write theme file");
+
+        let result = run_print(&test_file, 80, None, Some(&theme_file));
+        assert!(result.is_ok());
+
+        std::fs::remove_file(&test_file).ok();
+        std::fs::remove_file(&theme_file).ok();
     }
 
     #[test]

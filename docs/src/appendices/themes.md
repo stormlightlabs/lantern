@@ -23,8 +23,8 @@ Built-in theme names:
 `default` is also accepted. It resolves to `oxocarbon-dark` or `oxocarbon-light` based on terminal
 background detection.
 
-If you request an unknown theme while presenting or printing, lantern falls back to `nord`.
-Use `lantern check --strict deck.md` to warn on unknown themes.
+Named themes are loaded from the user config directory first, then from the built-in list.
+Unknown theme names fail with an error when presenting or printing.
 
 ## Using a theme
 
@@ -53,7 +53,20 @@ theme = "nord"
 ```bash
 lantern present presentation.md --theme nord
 lantern print presentation.md --theme catppuccin-latte
+lantern present presentation.md --theme-file ./my-theme.yml
 ```
+
+### User config directory
+
+Put Base16 YAML themes in one of these directories and reference them by file stem with `--theme`
+or front matter:
+
+- `$LANTERN_CONFIG_HOME/themes`
+- `$XDG_CONFIG_HOME/lantern/themes`
+- `~/.config/lantern/themes`
+
+For example, `~/.config/lantern/themes/acme.yml` can be used as `--theme acme` or
+`theme: acme`.
 
 ### Environment variable
 
@@ -66,10 +79,11 @@ lantern present presentation.md
 
 Lantern resolves the theme in this order:
 
-1. `--theme` on the command line
-2. `theme` in front matter
-3. `SLIDES_THEME`
-4. Detected default, `oxocarbon-dark` or `oxocarbon-light`
+1. `--theme-file` on the command line
+2. `--theme` on the command line
+3. `theme` in front matter
+4. `SLIDES_THEME`
+5. Detected default, `oxocarbon-dark` or `oxocarbon-light`
 
 ## Base16 mapping
 
@@ -110,6 +124,7 @@ lantern check --theme theme.yml
 ```
 
 Custom theme files can be validated, but rendering still uses built-in themes.
+The same file shape can be rendered with `--theme-file` or from the user config theme directory.
 
 A valid theme uses this shape:
 

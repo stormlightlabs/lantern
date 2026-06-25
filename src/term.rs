@@ -74,7 +74,7 @@ impl Drop for Terminal {
 }
 
 /// Input event handler for slide navigation and control
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum InputEvent {
     /// Move to next slide
     Next,
@@ -100,10 +100,10 @@ impl InputEvent {
     /// Convert crossterm event to input event
     ///
     /// Maps keyboard and terminal events to presentation actions.
-    pub fn from_crossterm(event: Event) -> Self {
+    pub fn from_crossterm(event: &Event) -> Self {
         match event {
-            Event::Key(KeyEvent { code, modifiers, .. }) => Self::from_key(code, modifiers),
-            Event::Resize(width, height) => Self::Resize { width, height },
+            Event::Key(KeyEvent { code, modifiers, .. }) => Self::from_key(*code, *modifiers),
+            Event::Resize(width, height) => Self::Resize { width: *width, height: *height },
             _ => Self::Other,
         }
     }
@@ -130,7 +130,7 @@ impl InputEvent {
     pub fn poll(timeout: Duration) -> io::Result<Option<Self>> {
         if event::poll(timeout)? {
             let event = event::read()?;
-            Ok(Some(Self::from_crossterm(event)))
+            Ok(Some(Self::from_crossterm(&event)))
         } else {
             Ok(None)
         }
@@ -139,7 +139,7 @@ impl InputEvent {
     /// Read next input event (blocking until an event is available)
     pub fn read() -> io::Result<Self> {
         let event = event::read()?;
-        Ok(Self::from_crossterm(event))
+        Ok(Self::from_crossterm(&event))
     }
 }
 
@@ -176,7 +176,7 @@ mod tests {
 
     #[test]
     fn input_event_resize() {
-        let resize = InputEvent::from_crossterm(Event::Resize(80, 24));
+        let resize = InputEvent::from_crossterm(&Event::Resize(80, 24));
         assert_eq!(resize, InputEvent::Resize { width: 80, height: 24 });
     }
 

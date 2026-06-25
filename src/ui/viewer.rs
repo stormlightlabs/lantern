@@ -221,11 +221,11 @@ impl SlideViewer {
                     .constraints([Constraint::Length(text_area_height), Constraint::Min(min_images_height)])
                     .split(inner_area);
 
-                if chunks[0].height > 0 {
-                    if let Some(text) = text_content.take() {
-                        let paragraph = Paragraph::new(text).wrap(Wrap { trim: false });
-                        frame.render_widget(paragraph, chunks[0]);
-                    }
+                if chunks[0].height > 0
+                    && let Some(text) = text_content.take()
+                {
+                    let paragraph = Paragraph::new(text).wrap(Wrap { trim: false });
+                    frame.render_widget(paragraph, chunks[0]);
                 }
 
                 let constraints: Vec<Constraint> = (0..total_images)
@@ -302,26 +302,26 @@ impl SlideViewer {
             return;
         }
 
-        if let Some(slide) = self.current_slide() {
-            if let Some(notes) = &slide.notes {
-                let border_color = self.stylesheet.border_color();
-                let title_color = self.stylesheet.title_color();
-                let text_color = self.stylesheet.text_color();
+        if let Some(slide) = self.current_slide()
+            && let Some(notes) = &slide.notes
+        {
+            let border_color = self.stylesheet.border_color();
+            let title_color = self.stylesheet.title_color();
+            let text_color = self.stylesheet.text_color();
 
-                let block = Block::default()
-                    .borders(Borders::ALL)
-                    .border_style(Style::default().fg(border_color))
-                    .title(" Speaker Notes ")
-                    .title_style(Style::default().fg(title_color).add_modifier(Modifier::BOLD))
-                    .padding(Stylesheet::slide_padding());
+            let block = Block::default()
+                .borders(Borders::ALL)
+                .border_style(Style::default().fg(border_color))
+                .title(" Speaker Notes ")
+                .title_style(Style::default().fg(title_color).add_modifier(Modifier::BOLD))
+                .padding(Stylesheet::slide_padding());
 
-                let paragraph = Paragraph::new(notes.clone())
-                    .block(block)
-                    .wrap(Wrap { trim: false })
-                    .style(Style::default().fg(text_color));
+            let paragraph = Paragraph::new(notes.clone())
+                .block(block)
+                .wrap(Wrap { trim: false })
+                .style(Style::default().fg(text_color));
 
-                frame.render_widget(paragraph, area);
-            }
+            frame.render_widget(paragraph, area);
         }
     }
 

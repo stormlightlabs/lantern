@@ -2,24 +2,33 @@
 
 use owo_colors::{OwoColorize, Style};
 use serde::Deserialize;
+use std::path::{Path, PathBuf};
+use std::{env, fs, io};
 use terminal_colorsaurus::{QueryOptions, ThemeMode, theme_mode};
 
-/// Parses a hex color string to RGB values.
-///
-/// Supports both `#RRGGBB` and `RRGGBB` formats.
-fn parse_hex_color(hex: &str) -> Option<(u8, u8, u8)> {
-    let hex = hex.trim_start_matches('#');
+static CATPPUCCIN_LATTE: &str = include_str!("themes/catppuccin-latte.yml");
+static CATPPUCCIN_MOCHA: &str = include_str!("themes/catppuccin-mocha.yml");
+static GRUVBOX_MATERIAL_DARK: &str = include_str!("themes/gruvbox-material-dark-medium.yml");
+static GRUVBOX_MATERIAL_LIGHT: &str = include_str!("themes/gruvbox-material-light-medium.yml");
+static NORD_LIGHT: &str = include_str!("themes/nord-light.yml");
+static NORD: &str = include_str!("themes/nord.yml");
+static OXOCARBON_DARK: &str = include_str!("themes/oxocarbon-dark.yml");
+static OXOCARBON_LIGHT: &str = include_str!("themes/oxocarbon-light.yml");
+static SOLARIZED_DARK: &str = include_str!("themes/solarized-dark.yml");
+static SOLARIZED_LIGHT: &str = include_str!("themes/solarized-light.yml");
 
-    if hex.len() != 6 {
-        return None;
-    }
-
-    let r = u8::from_str_radix(&hex[0..2], 16).ok()?;
-    let g = u8::from_str_radix(&hex[2..4], 16).ok()?;
-    let b = u8::from_str_radix(&hex[4..6], 16).ok()?;
-
-    Some((r, g, b))
-}
+const BUILTIN_THEMES: &[(&str, &str)] = &[
+    ("catppuccin-latte", CATPPUCCIN_LATTE),
+    ("catppuccin-mocha", CATPPUCCIN_MOCHA),
+    ("gruvbox-material-dark", GRUVBOX_MATERIAL_DARK),
+    ("gruvbox-material-light", GRUVBOX_MATERIAL_LIGHT),
+    ("nord-light", NORD_LIGHT),
+    ("nord", NORD),
+    ("oxocarbon-dark", OXOCARBON_DARK),
+    ("oxocarbon-light", OXOCARBON_LIGHT),
+    ("solarized-dark", SOLARIZED_DARK),
+    ("solarized-light", SOLARIZED_LIGHT),
+];
 
 /// Base16 color scheme specification.
 ///
@@ -64,17 +73,6 @@ pub struct Base16Palette {
     #[serde(rename = "base0F")]
     pub base0f: String,
 }
-
-static CATPPUCCIN_LATTE: &str = include_str!("themes/catppuccin-latte.yml");
-static CATPPUCCIN_MOCHA: &str = include_str!("themes/catppuccin-mocha.yml");
-static GRUVBOX_MATERIAL_DARK: &str = include_str!("themes/gruvbox-material-dark-medium.yml");
-static GRUVBOX_MATERIAL_LIGHT: &str = include_str!("themes/gruvbox-material-light-medium.yml");
-static NORD_LIGHT: &str = include_str!("themes/nord-light.yml");
-static NORD: &str = include_str!("themes/nord.yml");
-static OXOCARBON_DARK: &str = include_str!("themes/oxocarbon-dark.yml");
-static OXOCARBON_LIGHT: &str = include_str!("themes/oxocarbon-light.yml");
-static SOLARIZED_DARK: &str = include_str!("themes/solarized-dark.yml");
-static SOLARIZED_LIGHT: &str = include_str!("themes/solarized-light.yml");
 
 /// RGB color value for use with both owo-colors and ratatui
 #[derive(Debug, Clone, Copy)]
@@ -335,50 +333,120 @@ impl ThemeRegistry {
     /// "default" maps to oxocarbon-dark or oxocarbon-light based on terminal background detection.
     /// Falls back to Nord theme if the requested theme is not found or parsing fails.
     pub fn get(name: &str) -> ThemeColors {
-        let yaml = match name.to_lowercase().as_str() {
-            "default" => {
-                let is_dark = detect_is_dark();
-                if is_dark { OXOCARBON_DARK } else { OXOCARBON_LIGHT }
-            }
-            "catppuccin-latte" => CATPPUCCIN_LATTE,
-            "catppuccin-mocha" => CATPPUCCIN_MOCHA,
-            "gruvbox-material-dark" => GRUVBOX_MATERIAL_DARK,
-            "gruvbox-material-light" => GRUVBOX_MATERIAL_LIGHT,
-            "nord-light" => NORD_LIGHT,
-            "nord" => NORD,
-            "oxocarbon-dark" => OXOCARBON_DARK,
-            "oxocarbon-light" => OXOCARBON_LIGHT,
-            "solarized-dark" => SOLARIZED_DARK,
-            "solarized-light" => SOLARIZED_LIGHT,
-            _ => NORD,
-        };
+        let yaml = Self::builtin_yaml(name).unwrap_or(NORD);
+        Self::parse_yaml(yaml).unwrap_or_else(|_| Self::parse_yaml(NORD).expect("Failed to parse fallback Nord theme"))
+    }
 
-        yaml_serde::from_str::<Base16Scheme>(yaml)
-            .ok()
-            .and_then(|scheme| ThemeColors::from_base16(&scheme))
-            .unwrap_or_else(|| {
-                yaml_serde::from_str::<Base16Scheme>(NORD)
-                    .ok()
-                    .and_then(|scheme| ThemeColors::from_base16(&scheme))
-                    .expect("Failed to parse fallback Nord theme")
-            })
+    /// Load a built-in theme by name without falling back for unknown names.
+    pub fn load_builtin(name: &str) -> io::Result<ThemeColors> {
+        let yaml = Self::builtin_yaml(name).ok_or_else(|| {
+            io::Error::new(
+                io::ErrorKind::NotFound,
+                format!(
+                    "Built-in theme '{name}' not found. Available themes: {}",
+                    Self::available_themes().join(", ")
+                ),
+            )
+        })?;
+
+        Self::parse_yaml(yaml)
+    }
+
+    /// Load a Base16 theme from a YAML file.
+    pub fn load_file(path: &Path) -> io::Result<ThemeColors> {
+        let yaml = fs::read_to_string(path)
+            .map_err(|e| io::Error::new(e.kind(), format!("Failed to read theme file {}: {e}", path.display())))?;
+        Self::parse_yaml(&yaml)
+    }
+
+    /// Resolve a user theme file from lantern's config theme directories.
+    pub fn user_theme_path(name: &str) -> Option<PathBuf> {
+        Self::user_theme_path_in_dirs(name, &Self::user_theme_dirs())
+    }
+
+    fn user_theme_path_in_dirs(name: &str, dirs: &[PathBuf]) -> Option<PathBuf> {
+        for dir in dirs {
+            for extension in ["yml", "yaml"] {
+                let path = dir.join(format!("{name}.{extension}"));
+                if path.is_file() {
+                    return Some(path);
+                }
+            }
+        }
+
+        None
+    }
+
+    /// Load a theme by name from the user config directory, then built-ins.
+    pub fn load_named(name: &str) -> io::Result<ThemeColors> {
+        if let Some(path) = Self::user_theme_path(name) {
+            return Self::load_file(&path);
+        }
+
+        Self::load_builtin(name)
+    }
+
+    /// Config theme directories, in lookup order.
+    pub fn user_theme_dirs() -> Vec<PathBuf> {
+        let mut dirs = Vec::new();
+
+        if let Some(path) = env::var_os("LANTERN_CONFIG_HOME") {
+            dirs.push(PathBuf::from(path).join("themes"));
+        }
+
+        if let Some(path) = env::var_os("XDG_CONFIG_HOME") {
+            dirs.push(PathBuf::from(path).join("lantern").join("themes"));
+        } else if let Some(path) = env::var_os("HOME") {
+            dirs.push(PathBuf::from(path).join(".config").join("lantern").join("themes"));
+        }
+
+        dirs
     }
 
     /// List all available theme names.
     pub fn available_themes() -> Vec<&'static str> {
-        vec![
-            "catppuccin-latte",
-            "catppuccin-mocha",
-            "gruvbox-material-dark",
-            "gruvbox-material-light",
-            "nord-light",
-            "nord",
-            "oxocarbon-dark",
-            "oxocarbon-light",
-            "solarized-dark",
-            "solarized-light",
-        ]
+        BUILTIN_THEMES.iter().map(|(name, _)| *name).collect()
     }
+
+    fn parse_yaml(yaml: &str) -> io::Result<ThemeColors> {
+        let scheme = yaml_serde::from_str::<Base16Scheme>(yaml)
+            .map_err(|e| io::Error::new(io::ErrorKind::InvalidData, format!("Failed to parse theme YAML: {e}")))?;
+
+        ThemeColors::from_base16(&scheme).ok_or_else(|| {
+            io::Error::new(
+                io::ErrorKind::InvalidData,
+                format!("Theme '{}' contains an invalid Base16 palette", scheme.name),
+            )
+        })
+    }
+
+    fn builtin_yaml(name: &str) -> Option<&'static str> {
+        let name = name.to_lowercase();
+        if name == "default" {
+            return Some(if detect_is_dark() { OXOCARBON_DARK } else { OXOCARBON_LIGHT });
+        }
+
+        BUILTIN_THEMES
+            .iter()
+            .find_map(|(theme_name, yaml)| (*theme_name == name).then_some(*yaml))
+    }
+}
+
+/// Parses a hex color string to RGB values.
+///
+/// Supports both `#RRGGBB` and `RRGGBB` formats.
+fn parse_hex_color(hex: &str) -> Option<(u8, u8, u8)> {
+    let hex = hex.trim_start_matches('#');
+
+    if hex.len() != 6 {
+        return None;
+    }
+
+    let r = u8::from_str_radix(&hex[0..2], 16).ok()?;
+    let g = u8::from_str_radix(&hex[2..4], 16).ok()?;
+    let b = u8::from_str_radix(&hex[4..6], 16).ok()?;
+
+    Some((r, g, b))
 }
 
 #[cfg(test)]
@@ -622,6 +690,63 @@ palette:
         let text = "Test";
         let styled = theme.heading(&text);
         assert!(styled.to_string().contains("Test"));
+    }
+
+    #[test]
+    fn theme_registry_load_builtin_unknown_errors() {
+        let error = ThemeRegistry::load_builtin("nonexistent").unwrap_err();
+        assert_eq!(error.kind(), io::ErrorKind::NotFound);
+        assert!(error.to_string().contains("Built-in theme 'nonexistent' not found"));
+    }
+
+    #[test]
+    fn theme_registry_load_file() {
+        let temp_dir = std::env::temp_dir();
+        let theme_file = temp_dir.join("lantern_test_theme.yml");
+        let yaml = r##"
+system: "base16"
+name: "Test Theme"
+author: "Test Author"
+variant: "dark"
+palette:
+  base00: "#000000"
+  base01: "#111111"
+  base02: "#222222"
+  base03: "#333333"
+  base04: "#444444"
+  base05: "#555555"
+  base06: "#666666"
+  base07: "#777777"
+  base08: "#888888"
+  base09: "#999999"
+  base0A: "#aaaaaa"
+  base0B: "#bbbbbb"
+  base0C: "#cccccc"
+  base0D: "#dddddd"
+  base0E: "#eeeeee"
+  base0F: "#ffffff"
+"##;
+        std::fs::write(&theme_file, yaml).expect("Failed to write theme file");
+
+        let theme = ThemeRegistry::load_file(&theme_file).expect("Theme file should load");
+        assert_eq!(theme.body.r, 85);
+        assert_eq!(theme.heading.r, 221);
+
+        std::fs::remove_file(&theme_file).ok();
+    }
+
+    #[test]
+    fn theme_registry_finds_user_theme_path_in_config_dirs() {
+        let theme_dir = std::env::temp_dir().join("lantern_test_config_themes");
+        let theme_file = theme_dir.join("custom.yml");
+        std::fs::create_dir_all(&theme_dir).expect("Failed to create theme dir");
+        std::fs::write(&theme_file, "theme").expect("Failed to write theme file");
+
+        let path = ThemeRegistry::user_theme_path_in_dirs("custom", &[theme_dir.clone()]);
+        assert_eq!(path, Some(theme_file.clone()));
+
+        std::fs::remove_file(theme_file).ok();
+        std::fs::remove_dir(theme_dir).ok();
     }
 
     #[test]

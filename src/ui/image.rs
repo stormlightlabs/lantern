@@ -56,10 +56,10 @@ impl ImageManager {
             return path.to_path_buf();
         }
 
-        if let Some(base) = &self.base_path {
-            if let Some(parent) = base.parent() {
-                return parent.join(path);
-            }
+        if let Some(base) = &self.base_path
+            && let Some(parent) = base.parent()
+        {
+            return parent.join(path);
         }
 
         path.to_path_buf()

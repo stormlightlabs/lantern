@@ -78,9 +78,12 @@ pub fn validate_slides(file_path: &Path, strict: bool) -> ValidationResult {
 
 /// Validate metadata fields
 fn validate_metadata(meta: &Meta, result: &mut ValidationResult) {
-    if meta.theme != "default" && !ThemeRegistry::available_themes().contains(&meta.theme.as_str()) {
+    if meta.theme != "default"
+        && !ThemeRegistry::available_themes().contains(&meta.theme.as_str())
+        && ThemeRegistry::user_theme_path(&meta.theme).is_none()
+    {
         result.add_warning(format!(
-            "Theme '{}' is not a built-in theme. Available themes: {}",
+            "Theme '{}' was not found in built-in themes or config theme directories. Built-in themes: {}",
             meta.theme,
             ThemeRegistry::available_themes().join(", ")
         ));
@@ -198,17 +201,19 @@ fn validate_hex_color(name: &str, hex: &str, result: &mut ValidationResult) {
 ///
 /// Checks if the theme exists in the built-in registry
 pub fn validate_theme_name(name: &str) -> Result<ThemeColors> {
-    let available = ThemeRegistry::available_themes();
-
-    if available.contains(&name) || name == "default" {
-        Ok(ThemeRegistry::get(name))
-    } else {
-        Err(SlideError::theme_error(format!(
-            "Theme '{}' not found. Available themes: {}",
+    ThemeRegistry::load_named(name).map_err(|e| {
+        SlideError::theme_error(format!(
+            "Theme '{}' not found. Built-in themes: {}. Config directories: {}. Error: {}",
             name,
-            available.join(", ")
-        )))
-    }
+            ThemeRegistry::available_themes().join(", "),
+            ThemeRegistry::user_theme_dirs()
+                .iter()
+                .map(|path| path.display().to_string())
+                .collect::<Vec<_>>()
+                .join(", "),
+            e
+        ))
+    })
 }
 
 #[cfg(test)]

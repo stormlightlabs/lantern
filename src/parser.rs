@@ -119,7 +119,7 @@ pub fn parse_slides_with_meta(markdown: &str) -> Result<(Meta, Vec<Slide>)> {
 /// Parse markdown content into a vector of slides
 pub fn parse_slides(markdown: &str) -> Result<Vec<Slide>> {
     let sections = split_slides(markdown);
-    sections.into_iter().map(parse_slide).collect()
+    sections.into_iter().map(|value| parse_slide(&value)).collect()
 }
 
 /// Extract speaker notes from `::: notes` blocks and remove them from visible slide content.
@@ -203,32 +203,32 @@ fn preprocess_admonitions(markdown: &str) -> String {
             continue;
         }
 
-        if trimmed.starts_with('>') {
-            if let Some((admonition_type, title)) = parse_blockquote_admonition(trimmed) {
-                result.push_str(&format!("<admonition type=\"{admonition_type}\""));
-                if let Some(t) = title {
-                    result.push_str(&format!(" title=\"{t}\""));
-                }
-                result.push_str(">\n");
-                i += 1;
-
-                while i < lines.len() {
-                    let next_line = lines[i];
-                    let next_trimmed = next_line.trim();
-                    if next_trimmed.starts_with('>') {
-                        let content = next_trimmed.strip_prefix('>').unwrap_or("").trim();
-                        if !content.is_empty() {
-                            result.push_str(content);
-                            result.push('\n');
-                        }
-                        i += 1;
-                    } else {
-                        break;
-                    }
-                }
-                result.push_str("</admonition>\n");
-                continue;
+        if trimmed.starts_with('>')
+            && let Some((admonition_type, title)) = parse_blockquote_admonition(trimmed)
+        {
+            result.push_str(&format!("<admonition type=\"{admonition_type}\""));
+            if let Some(t) = title {
+                result.push_str(&format!(" title=\"{t}\""));
             }
+            result.push_str(">\n");
+            i += 1;
+
+            while i < lines.len() {
+                let next_line = lines[i];
+                let next_trimmed = next_line.trim();
+                if next_trimmed.starts_with('>') {
+                    let content = next_trimmed.strip_prefix('>').unwrap_or("").trim();
+                    if !content.is_empty() {
+                        result.push_str(content);
+                        result.push('\n');
+                    }
+                    i += 1;
+                } else {
+                    break;
+                }
+            }
+            result.push_str("</admonition>\n");
+            continue;
         }
 
         result.push_str(line);
@@ -338,8 +338,8 @@ fn split_slides(markdown: &str) -> Vec<String> {
 }
 
 /// Parse a single slide from markdown
-fn parse_slide(markdown: String) -> Result<Slide> {
-    let (markdown, notes) = extract_notes(&markdown);
+fn parse_slide(markdown: &str) -> Result<Slide> {
+    let (markdown, notes) = extract_notes(markdown);
     let preprocessed = preprocess_admonitions(&markdown);
     let mut options = Options::empty();
     options.insert(Options::ENABLE_TABLES);
@@ -479,10 +479,10 @@ fn parse_slide(markdown: String) -> Result<Slide> {
                     }
                 }
                 TagEnd::TableRow => {
-                    if let Some(BlockBuilder::Table { current_row, rows, .. }) = block_stack.last_mut() {
-                        if !current_row.is_empty() {
-                            rows.push(std::mem::take(current_row));
-                        }
+                    if let Some(BlockBuilder::Table { current_row, rows, .. }) = block_stack.last_mut()
+                        && !current_row.is_empty()
+                    {
+                        rows.push(std::mem::take(current_row));
                     }
                 }
                 TagEnd::TableCell => {
@@ -492,11 +492,10 @@ fn parse_slide(markdown: String) -> Result<Slide> {
                 }
                 TagEnd::Item => {
                     if let Some(BlockBuilder::List { current_item, items, pending_nested, .. }) = block_stack.last_mut()
+                        && !current_item.is_empty()
                     {
-                        if !current_item.is_empty() {
-                            let nested = pending_nested.take().map(Box::new);
-                            items.push(ListItem { spans: std::mem::take(current_item), nested });
-                        }
+                        let nested = pending_nested.take().map(Box::new);
+                        items.push(ListItem { spans: std::mem::take(current_item), nested });
                     }
                 }
                 TagEnd::Emphasis => {
@@ -550,31 +549,31 @@ fn parse_slide(markdown: String) -> Result<Slide> {
                     if let Some(builder) = block_stack.pop() {
                         blocks.push(builder.build());
                     }
-                } else if !block_stack.is_empty() {
-                    if let Some(BlockBuilder::Admonition { blocks: adm_blocks, .. }) = block_stack.last_mut() {
-                        let inner_markdown = html.to_string();
-                        let inner_options = Options::empty();
-                        let inner_parser = Parser::new_ext(&inner_markdown, inner_options);
-                        let mut inner_block_stack: Vec<BlockBuilder> = Vec::new();
-                        let inner_style = TextStyle::default();
+                } else if !block_stack.is_empty()
+                    && let Some(BlockBuilder::Admonition { blocks: adm_blocks, .. }) = block_stack.last_mut()
+                {
+                    let inner_markdown = html.to_string();
+                    let inner_options = Options::empty();
+                    let inner_parser = Parser::new_ext(&inner_markdown, inner_options);
+                    let mut inner_block_stack: Vec<BlockBuilder> = Vec::new();
+                    let inner_style = TextStyle::default();
 
-                        for inner_event in inner_parser {
-                            match inner_event {
-                                Event::Start(Tag::Paragraph) => {
-                                    inner_block_stack.push(BlockBuilder::Paragraph { spans: Vec::new() });
-                                }
-                                Event::Text(text) => {
-                                    if let Some(builder) = inner_block_stack.last_mut() {
-                                        builder.add_text(text.to_string(), &inner_style);
-                                    }
-                                }
-                                Event::End(TagEnd::Paragraph) => {
-                                    if let Some(builder) = inner_block_stack.pop() {
-                                        adm_blocks.push(builder.build());
-                                    }
-                                }
-                                _ => {}
+                    for inner_event in inner_parser {
+                        match inner_event {
+                            Event::Start(Tag::Paragraph) => {
+                                inner_block_stack.push(BlockBuilder::Paragraph { spans: Vec::new() });
                             }
+                            Event::Text(text) => {
+                                if let Some(builder) = inner_block_stack.last_mut() {
+                                    builder.add_text(text.to_string(), &inner_style);
+                                }
+                            }
+                            Event::End(TagEnd::Paragraph) => {
+                                if let Some(builder) = inner_block_stack.pop() {
+                                    adm_blocks.push(builder.build());
+                                }
+                            }
+                            _ => {}
                         }
                     }
                 }

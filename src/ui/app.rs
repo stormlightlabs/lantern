@@ -33,7 +33,7 @@ pub struct App {
 impl App {
     /// Create a new presentation application
     pub fn new(slides: Vec<Slide>, theme: ThemeColors, filename: String, _meta: Meta, theme_name: String) -> Self {
-        let viewer = SlideViewer::with_ctx(slides, theme, Some(filename.clone()), theme_name, Some(Instant::now()));
+        let viewer = SlideViewer::with_ctx(slides, theme, Some(filename), theme_name, Some(Instant::now()));
         Self { viewer, layout: SlideLayout::default(), should_quit: false, theme, help_visible: false }
     }
 
