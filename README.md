@@ -144,3 +144,7 @@ cargo llvm-cov --open
 
 - [`maaslalani/slides`](https://github.com/maaslalani/slides)
 - [`d0c-s4vage/lookatme`](https://github.com/d0c-s4vage/lookatme)
+
+## License
+
+[MIT](./LICENSE)
