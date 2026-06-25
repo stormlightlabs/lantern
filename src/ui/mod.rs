@@ -6,4 +6,4 @@ pub mod layout;
 pub mod renderer;
 pub mod viewer;
 
-pub use app::App;
+pub use app::{App, PresentationUpdate};

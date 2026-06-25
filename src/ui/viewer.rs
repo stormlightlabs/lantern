@@ -1,6 +1,5 @@
 //! Slide viewer state, navigation, status bar, and rendering helpers.
 
-#![allow(dead_code)]
 use crate::{slide::Slide, theme::ThemeColors};
 use ratatui::{
     Frame,
@@ -93,7 +92,7 @@ impl SlideViewer {
     }
 
     /// Create a slide viewer with full presentation context
-    pub fn with_context(
+    pub fn with_ctx(
         slides: Vec<Slide>, theme: ThemeColors, filename: Option<String>, theme_name: String,
         start_time: Option<Instant>,
     ) -> Self {
@@ -153,6 +152,25 @@ impl SlideViewer {
     /// Get total number of slides
     pub fn total_slides(&self) -> usize {
         self.slides.len()
+    }
+
+    /// Get the active theme name.
+    pub fn theme_name(&self) -> &str {
+        &self.theme_name
+    }
+
+    /// Replace the slide deck while keeping the current slide when possible.
+    pub fn replace_slides(&mut self, slides: Vec<Slide>) {
+        self.slides = slides;
+        if self.current_index >= self.slides.len() {
+            self.current_index = self.slides.len().saturating_sub(1);
+        }
+    }
+
+    /// Replace the active theme and displayed theme name.
+    pub fn replace_theme(&mut self, theme: ThemeColors, theme_name: String) {
+        self.stylesheet = theme.into();
+        self.theme_name = theme_name;
     }
 
     /// Check if speaker notes are visible
@@ -492,10 +510,34 @@ mod tests {
     }
 
     #[test]
+    fn viewer_replace_slides_keeps_current_index_when_possible() {
+        let slides = create_test_slides();
+        let mut viewer = SlideViewer::new(slides, ThemeColors::default());
+        viewer.jump_to(2);
+        viewer.replace_slides(create_test_slides());
+
+        assert_eq!(viewer.current_index(), 1);
+    }
+
+    #[test]
+    fn viewer_replace_slides_clamps_current_index() {
+        let slides = create_test_slides();
+        let mut viewer = SlideViewer::new(slides, ThemeColors::default());
+        viewer.jump_to(3);
+        viewer.replace_slides(vec![Slide::with_blocks(vec![Block::Heading {
+            level: 1,
+            spans: vec![TextSpan::plain("Only slide")],
+        }])]);
+
+        assert_eq!(viewer.current_index(), 0);
+        assert_eq!(viewer.total_slides(), 1);
+    }
+
+    #[test]
     fn viewer_with_context() {
         let slides = create_test_slides();
         let start_time = Instant::now();
-        let viewer = SlideViewer::with_context(
+        let viewer = SlideViewer::with_ctx(
             slides,
             ThemeColors::default(),
             Some("presentation.md".to_string()),
@@ -511,9 +553,7 @@ mod tests {
     #[test]
     fn viewer_with_context_none_values() {
         let slides = create_test_slides();
-        let viewer =
-            SlideViewer::with_context(slides, ThemeColors::default(), None, "oxocarbon-dark".to_string(), None);
-
+        let viewer = SlideViewer::with_ctx(slides, ThemeColors::default(), None, "oxocarbon-dark".to_string(), None);
         assert_eq!(viewer.filename, None);
         assert_eq!(viewer.theme_name, "oxocarbon-dark");
         assert_eq!(viewer.start_time, None);
@@ -523,7 +563,6 @@ mod tests {
     fn viewer_default_constructor() {
         let slides = create_test_slides();
         let viewer = SlideViewer::new(slides, ThemeColors::default());
-
         assert_eq!(viewer.filename, None);
         assert_eq!(viewer.theme_name, "oxocarbon-dark");
         assert_eq!(viewer.start_time, None);

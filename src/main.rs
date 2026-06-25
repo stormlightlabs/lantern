@@ -3,12 +3,21 @@
 /// TODO: Add --no-bg flag to present command to allow users to disable background color
 use clap::{Parser, Subcommand};
 use lantern_cli::validator::{validate_slides, validate_theme_file};
-use lantern_cli::{parser::parse_slides_with_meta, term::Terminal as SlideTerminal, theme::ThemeRegistry, ui::App};
+use lantern_cli::{
+    metadata::Meta,
+    parser::parse_slides_with_meta,
+    slide::Slide,
+    term::Terminal as SlideTerminal,
+    theme::{ThemeColors, ThemeRegistry},
+    ui::{App, PresentationUpdate},
+};
+use notify::{Event, EventKind, RecommendedWatcher, RecursiveMode, Watcher};
 use owo_colors::OwoColorize;
 use ratatui::{Terminal, backend::CrosstermBackend};
 use std::{
     io,
     path::{Path, PathBuf},
+    sync::mpsc::{self, Receiver},
 };
 use tracing::Level;
 
@@ -71,6 +80,14 @@ enum Commands {
     },
 }
 
+struct LoadedDeck {
+    meta: Meta,
+    slides: Vec<Slide>,
+    theme: ThemeColors,
+    theme_name: String,
+    filename: String,
+}
+
 fn main() {
     let cli = ArgParser::parse();
 
@@ -121,9 +138,7 @@ fn main() {
     }
 }
 
-fn run_present(file: &PathBuf, theme_arg: Option<String>) -> io::Result<()> {
-    tracing::info!("Presenting slides from: {}", file.display());
-
+fn load_deck(file: &Path, theme_arg: Option<&str>) -> io::Result<LoadedDeck> {
     let markdown = std::fs::read_to_string(file)
         .map_err(|e| io::Error::new(e.kind(), format!("Failed to read file {}: {}", file.display(), e)))?;
 
@@ -134,22 +149,96 @@ fn run_present(file: &PathBuf, theme_arg: Option<String>) -> io::Result<()> {
         return Err(io::Error::new(io::ErrorKind::InvalidData, "No slides found in file"));
     }
 
-    let theme_name = theme_arg.clone().unwrap_or_else(|| meta.theme.clone());
-    tracing::info!(
-        "Theme selection: CLI arg={:?}, frontmatter={}, final={}",
-        theme_arg,
-        meta.theme,
-        theme_name
-    );
-
+    let theme_name = theme_arg.map(str::to_string).unwrap_or_else(|| meta.theme.clone());
     let theme = ThemeRegistry::get(&theme_name);
-
     let filename = file
         .file_name()
         .and_then(|n| n.to_str())
         .unwrap_or("unknown")
         .to_string();
 
+    Ok(LoadedDeck { meta, slides, theme, theme_name, filename })
+}
+
+fn watch_deck(file: &Path) -> io::Result<(RecommendedWatcher, Receiver<()>)> {
+    let source = file.canonicalize()?;
+    let watched_name = source.file_name().map(|name| name.to_owned()).ok_or_else(|| {
+        io::Error::new(
+            io::ErrorKind::InvalidInput,
+            format!("Invalid source file path {}", file.display()),
+        )
+    })?;
+    let parent = source.parent().ok_or_else(|| {
+        io::Error::new(
+            io::ErrorKind::InvalidInput,
+            format!("Invalid source file path {}", file.display()),
+        )
+    })?;
+
+    let (tx, rx) = mpsc::channel();
+    let mut watcher = notify::recommended_watcher(move |result: notify::Result<Event>| match result {
+        Ok(event) => {
+            if is_deck_reload_event(&event)
+                && event
+                    .paths
+                    .iter()
+                    .any(|path| path.file_name() == Some(watched_name.as_os_str()))
+            {
+                let _ = tx.send(());
+            }
+        }
+        Err(error) => tracing::warn!("Slide deck watcher error: {error}"),
+    })
+    .map_err(io::Error::other)?;
+
+    watcher
+        .watch(parent, RecursiveMode::NonRecursive)
+        .map_err(io::Error::other)?;
+    Ok((watcher, rx))
+}
+
+fn is_deck_reload_event(event: &Event) -> bool {
+    matches!(
+        event.kind,
+        EventKind::Any | EventKind::Create(_) | EventKind::Modify(_) | EventKind::Remove(_)
+    )
+}
+
+fn reload_deck_if_changed(
+    file: &Path, theme_arg: Option<&str>, reload_events: &Receiver<()>,
+) -> io::Result<Option<PresentationUpdate>> {
+    if reload_events.try_iter().count() == 0 {
+        return Ok(None);
+    }
+
+    match load_deck(file, theme_arg) {
+        Ok(deck) => {
+            tracing::info!("Reloaded slides from: {}", file.display());
+            Ok(Some(PresentationUpdate {
+                slides: deck.slides,
+                theme: deck.theme,
+                theme_name: deck.theme_name,
+            }))
+        }
+        Err(error) => {
+            tracing::warn!("Keeping previous slides after reload failure: {error}");
+            Ok(None)
+        }
+    }
+}
+
+fn run_present(file: &PathBuf, theme_arg: Option<String>) -> io::Result<()> {
+    tracing::info!("Presenting slides from: {}", file.display());
+
+    let deck = load_deck(file, theme_arg.as_deref())?;
+    tracing::info!(
+        "Theme selection: CLI arg={:?}, frontmatter={}, final={}",
+        theme_arg,
+        deck.meta.theme,
+        deck.theme_name
+    );
+
+    let (_watcher, reload_events) = watch_deck(file)?;
     let mut slide_terminal = SlideTerminal::setup()?;
 
     let result = (|| -> io::Result<()> {
@@ -159,8 +248,10 @@ fn run_present(file: &PathBuf, theme_arg: Option<String>) -> io::Result<()> {
 
         terminal.clear()?;
 
-        let mut app = App::new(slides, theme, filename, meta);
-        app.run(&mut terminal)?;
+        let mut app = App::new(deck.slides, deck.theme, deck.filename, deck.meta, deck.theme_name);
+        app.run(&mut terminal, || {
+            reload_deck_if_changed(file, theme_arg.as_deref(), &reload_events)
+        })?;
 
         Ok(())
     })();

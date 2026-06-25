@@ -21,11 +21,12 @@ Tasks moved from [ROADMAP.md](ROADMAP.md).
 - [x] **Theming**: Map terminal theme choice to Syntect theme (e.g., `"OneDark"`, `"Monokai"`).
 - [x] **Performance**: Lazy-load themes and syntaxes; use `OnceLock` for caching.
 - [x] **Mode**: Render to ANSI-colored plain text output (for `lantern print`).
+  - [ ] This should support `NO_COLOR`
 
 ## Presenter
 
 - [x] **Finish Speaker Notes**: Parse `::: notes` blocks into `Slide.notes`; keep `Shift+N` as the notes-panel toggle.
-- [ ] **Live Reload**: Watch the source file and reload slides without restarting the presenter.
+- [x] **Live Reload**: Watch the source file and reload slides without restarting the presenter.
 - [ ] **Search**: Implement `/` and `ctrl+f` search over slide text and titles; jump to the next match.
 - [ ] **Navigation Polish**: Add numeric jumps, `gg` for first slide, and `G` for last slide.
 - [ ] **Status Metadata**: Use parsed `author`, `date`, and `paging` metadata in the status bar.

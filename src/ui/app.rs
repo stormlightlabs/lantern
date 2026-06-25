@@ -12,6 +12,13 @@ use std::time::{Duration, Instant};
 
 use super::{layout::SlideLayout, viewer::SlideViewer};
 
+/// Presentation content that can be swapped in while the app is running.
+pub struct PresentationUpdate {
+    pub slides: Vec<Slide>,
+    pub theme: ThemeColors,
+    pub theme_name: String,
+}
+
 /// Main TUI application coordinator
 ///
 /// Manages the presentation lifecycle, event loop, and component coordination.
@@ -25,21 +32,21 @@ pub struct App {
 
 impl App {
     /// Create a new presentation application
-    pub fn new(slides: Vec<Slide>, theme: ThemeColors, filename: String, meta: Meta) -> Self {
-        let viewer = SlideViewer::with_context(
-            slides,
-            theme,
-            Some(filename.clone()),
-            meta.theme.clone(),
-            Some(Instant::now()),
-        );
-
+    pub fn new(slides: Vec<Slide>, theme: ThemeColors, filename: String, _meta: Meta, theme_name: String) -> Self {
+        let viewer = SlideViewer::with_ctx(slides, theme, Some(filename.clone()), theme_name, Some(Instant::now()));
         Self { viewer, layout: SlideLayout::default(), should_quit: false, theme, help_visible: false }
     }
 
     /// Run the main event loop
-    pub fn run<B: Backend>(&mut self, terminal: &mut RatatuiTerminal<B>) -> io::Result<()> {
+    pub fn run<B: Backend, F>(&mut self, terminal: &mut RatatuiTerminal<B>, mut reload: F) -> io::Result<()>
+    where
+        F: FnMut() -> io::Result<Option<PresentationUpdate>>,
+    {
         loop {
+            if let Some(update) = reload()? {
+                self.apply_update(update);
+            }
+
             terminal.draw(|frame| self.draw(frame))?;
 
             if self.should_quit {
@@ -52,6 +59,12 @@ impl App {
         }
 
         Ok(())
+    }
+
+    fn apply_update(&mut self, update: PresentationUpdate) {
+        self.theme = update.theme;
+        self.viewer.replace_theme(update.theme, update.theme_name);
+        self.viewer.replace_slides(update.slides);
     }
 
     fn toggle_notes(&mut self) {
@@ -120,7 +133,13 @@ mod tests {
             }]),
         ];
 
-        App::new(slides, ThemeColors::default(), "test.md".to_string(), Meta::default())
+        App::new(
+            slides,
+            ThemeColors::default(),
+            "test.md".to_string(),
+            Meta::default(),
+            "oxocarbon-dark".to_string(),
+        )
     }
 
     #[test]
@@ -185,5 +204,24 @@ mod tests {
         app.handle_event(InputEvent::ToggleHelp);
         assert!(!app.help_visible);
         assert!(!app.layout.is_showing_help());
+    }
+
+    #[test]
+    fn app_apply_update_replaces_slides_and_theme_name() {
+        let mut app = create_test_app();
+        app.handle_event(InputEvent::Next);
+
+        app.apply_update(PresentationUpdate {
+            slides: vec![Slide::with_blocks(vec![Block::Heading {
+                level: 1,
+                spans: vec![TextSpan::plain("Reloaded")],
+            }])],
+            theme: ThemeColors::default(),
+            theme_name: "reloaded-theme".to_string(),
+        });
+
+        assert_eq!(app.viewer.current_index(), 0);
+        assert_eq!(app.viewer.total_slides(), 1);
+        assert_eq!(app.viewer.theme_name(), "reloaded-theme");
     }
 }
