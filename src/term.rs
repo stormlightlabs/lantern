@@ -118,7 +118,7 @@ impl InputEvent {
             (KeyCode::Char('q'), KeyModifiers::NONE) => Self::Quit,
             (KeyCode::Char('c'), KeyModifiers::CONTROL) => Self::Quit,
             (KeyCode::Esc, _) => Self::Quit,
-            (KeyCode::Char('n'), KeyModifiers::SHIFT) => Self::ToggleNotes,
+            (KeyCode::Char('N'), _) | (KeyCode::Char('n'), KeyModifiers::SHIFT) => Self::ToggleNotes,
             (KeyCode::Char('?'), _) => Self::ToggleHelp,
             (KeyCode::Char('f'), KeyModifiers::CONTROL) => Self::Search,
             (KeyCode::Char('/'), KeyModifiers::NONE) => Self::Search,
@@ -187,6 +187,15 @@ mod tests {
 
         let help_shift = InputEvent::from_key(KeyCode::Char('?'), KeyModifiers::SHIFT);
         assert_eq!(help_shift, InputEvent::ToggleHelp);
+    }
+
+    #[test]
+    fn input_event_toggle_notes() {
+        let notes_uppercase = InputEvent::from_key(KeyCode::Char('N'), KeyModifiers::NONE);
+        assert_eq!(notes_uppercase, InputEvent::ToggleNotes);
+
+        let notes_shift_lowercase = InputEvent::from_key(KeyCode::Char('n'), KeyModifiers::SHIFT);
+        assert_eq!(notes_shift_lowercase, InputEvent::ToggleNotes);
     }
 
     #[test]

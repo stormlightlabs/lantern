@@ -5,6 +5,108 @@ use crate::metadata::Meta;
 use crate::slide::*;
 use pulldown_cmark::{Alignment as PulldownAlignment, Event, Options, Parser, Tag, TagEnd};
 
+/// Helper to build blocks while parsing
+enum BlockBuilder {
+    Heading {
+        level: u8,
+        spans: Vec<TextSpan>,
+    },
+    Paragraph {
+        spans: Vec<TextSpan>,
+    },
+    Code {
+        language: Option<String>,
+        code: String,
+    },
+    List {
+        ordered: bool,
+        items: Vec<ListItem>,
+        current_item: Vec<TextSpan>,
+        pending_nested: Option<List>,
+    },
+    BlockQuote {
+        blocks: Vec<Block>,
+    },
+    Table {
+        headers: Vec<Vec<TextSpan>>,
+        rows: Vec<Vec<Vec<TextSpan>>>,
+        current_row: Vec<Vec<TextSpan>>,
+        current_cell: Vec<TextSpan>,
+        alignments: Vec<Alignment>,
+        in_header: bool,
+    },
+    Admonition {
+        admonition_type: AdmonitionType,
+        title: Option<String>,
+        blocks: Vec<Block>,
+    },
+    Image {
+        path: String,
+        alt: String,
+    },
+}
+
+impl BlockBuilder {
+    fn add_text(&mut self, text: String, current_style: &TextStyle) {
+        match self {
+            Self::Heading { spans, .. } | Self::Paragraph { spans, .. } => {
+                if !text.is_empty() {
+                    spans.push(TextSpan { text, style: current_style.clone() });
+                }
+            }
+            Self::Code { code, .. } => {
+                code.push_str(&text);
+            }
+            Self::List { current_item, .. } => {
+                if !text.is_empty() {
+                    current_item.push(TextSpan { text, style: current_style.clone() });
+                }
+            }
+            Self::Table { current_cell, .. } => {
+                if !text.is_empty() {
+                    current_cell.push(TextSpan { text, style: current_style.clone() });
+                }
+            }
+            Self::Image { alt, .. } => {
+                alt.push_str(&text);
+            }
+            Self::Admonition { .. } => {}
+            _ => {}
+        }
+    }
+
+    fn add_code_span(&mut self, code: String) {
+        match self {
+            Self::Heading { spans, .. } | Self::Paragraph { spans, .. } => {
+                spans.push(TextSpan { text: code, style: TextStyle { code: true, ..Default::default() } });
+            }
+            Self::List { current_item, .. } => {
+                current_item.push(TextSpan { text: code, style: TextStyle { code: true, ..Default::default() } });
+            }
+            Self::Table { current_cell, .. } => {
+                current_cell.push(TextSpan { text: code, style: TextStyle { code: true, ..Default::default() } });
+            }
+            Self::Admonition { .. } => {}
+            _ => {}
+        }
+    }
+
+    fn build(self) -> Block {
+        match self {
+            Self::Heading { level, spans } => Block::Heading { level, spans },
+            Self::Paragraph { spans } => Block::Paragraph { spans },
+            Self::Code { language, code } => Block::Code(CodeBlock { language, code }),
+            Self::List { ordered, items, .. } => Block::List(List { ordered, items }),
+            Self::BlockQuote { blocks } => Block::BlockQuote { blocks },
+            Self::Table { headers, rows, alignments, .. } => Block::Table(Table { headers, rows, alignments }),
+            Self::Admonition { admonition_type, title, blocks } => {
+                Block::Admonition(Admonition { admonition_type, title, blocks })
+            }
+            Self::Image { path, alt } => Block::Image { path, alt },
+        }
+    }
+}
+
 /// Parse markdown content into metadata and slides
 ///
 /// Extracts frontmatter metadata, then splits content on `---` separators.
@@ -18,6 +120,57 @@ pub fn parse_slides_with_meta(markdown: &str) -> Result<(Meta, Vec<Slide>)> {
 pub fn parse_slides(markdown: &str) -> Result<Vec<Slide>> {
     let sections = split_slides(markdown);
     sections.into_iter().map(parse_slide).collect()
+}
+
+/// Extract speaker notes from `::: notes` blocks and remove them from visible slide content.
+fn extract_notes(markdown: &str) -> (String, Option<String>) {
+    let mut content = String::new();
+    let mut notes = Vec::new();
+    let lines: Vec<&str> = markdown.lines().collect();
+    let mut i = 0;
+    let mut in_code_block = false;
+
+    while i < lines.len() {
+        let line = lines[i];
+        let trimmed = line.trim();
+
+        if trimmed.starts_with("```") || trimmed.starts_with("~~~") {
+            in_code_block = !in_code_block;
+        }
+
+        if is_notes_start(trimmed) && !in_code_block {
+            let mut note = String::new();
+            i += 1;
+            while i < lines.len() && lines[i].trim() != ":::" {
+                note.push_str(lines[i]);
+                note.push('\n');
+                i += 1;
+            }
+            if i < lines.len() {
+                i += 1;
+            }
+            let note = note.trim().to_string();
+            if !note.is_empty() {
+                notes.push(note);
+            }
+            continue;
+        }
+
+        content.push_str(line);
+        content.push('\n');
+        i += 1;
+    }
+
+    let notes = if notes.is_empty() { None } else { Some(notes.join("\n\n")) };
+    (content, notes)
+}
+
+fn is_notes_start(line: &str) -> bool {
+    let Some(content) = line.strip_prefix(":::") else {
+        return false;
+    };
+
+    content.trim().eq_ignore_ascii_case("notes")
 }
 
 /// Preprocess markdown to convert admonition syntax to a format we can parse
@@ -153,15 +306,20 @@ fn split_slides(markdown: &str) -> Vec<String> {
     let mut slides = Vec::new();
     let mut current = String::new();
     let mut in_code_block = false;
+    let mut in_notes_block = false;
 
     for line in markdown.lines() {
         let trimmed = line.trim();
 
-        if trimmed.starts_with("```") || trimmed.starts_with("~~~") {
+        if is_notes_start(trimmed) && !in_code_block {
+            in_notes_block = true;
+        } else if trimmed == ":::" && in_notes_block {
+            in_notes_block = false;
+        } else if (trimmed.starts_with("```") || trimmed.starts_with("~~~")) && !in_notes_block {
             in_code_block = !in_code_block;
         }
 
-        if trimmed == "---" && !in_code_block {
+        if trimmed == "---" && !in_code_block && !in_notes_block {
             if !current.trim().is_empty() {
                 slides.push(current);
                 current = String::new();
@@ -181,6 +339,7 @@ fn split_slides(markdown: &str) -> Vec<String> {
 
 /// Parse a single slide from markdown
 fn parse_slide(markdown: String) -> Result<Slide> {
+    let (markdown, notes) = extract_notes(&markdown);
     let preprocessed = preprocess_admonitions(&markdown);
     let mut options = Options::empty();
     options.insert(Options::ENABLE_TABLES);
@@ -425,109 +584,7 @@ fn parse_slide(markdown: String) -> Result<Slide> {
         }
     }
 
-    Ok(Slide::with_blocks(blocks))
-}
-
-/// Helper to build blocks while parsing
-enum BlockBuilder {
-    Heading {
-        level: u8,
-        spans: Vec<TextSpan>,
-    },
-    Paragraph {
-        spans: Vec<TextSpan>,
-    },
-    Code {
-        language: Option<String>,
-        code: String,
-    },
-    List {
-        ordered: bool,
-        items: Vec<ListItem>,
-        current_item: Vec<TextSpan>,
-        pending_nested: Option<List>,
-    },
-    BlockQuote {
-        blocks: Vec<Block>,
-    },
-    Table {
-        headers: Vec<Vec<TextSpan>>,
-        rows: Vec<Vec<Vec<TextSpan>>>,
-        current_row: Vec<Vec<TextSpan>>,
-        current_cell: Vec<TextSpan>,
-        alignments: Vec<Alignment>,
-        in_header: bool,
-    },
-    Admonition {
-        admonition_type: AdmonitionType,
-        title: Option<String>,
-        blocks: Vec<Block>,
-    },
-    Image {
-        path: String,
-        alt: String,
-    },
-}
-
-impl BlockBuilder {
-    fn add_text(&mut self, text: String, current_style: &TextStyle) {
-        match self {
-            Self::Heading { spans, .. } | Self::Paragraph { spans, .. } => {
-                if !text.is_empty() {
-                    spans.push(TextSpan { text, style: current_style.clone() });
-                }
-            }
-            Self::Code { code, .. } => {
-                code.push_str(&text);
-            }
-            Self::List { current_item, .. } => {
-                if !text.is_empty() {
-                    current_item.push(TextSpan { text, style: current_style.clone() });
-                }
-            }
-            Self::Table { current_cell, .. } => {
-                if !text.is_empty() {
-                    current_cell.push(TextSpan { text, style: current_style.clone() });
-                }
-            }
-            Self::Image { alt, .. } => {
-                alt.push_str(&text);
-            }
-            Self::Admonition { .. } => {}
-            _ => {}
-        }
-    }
-
-    fn add_code_span(&mut self, code: String) {
-        match self {
-            Self::Heading { spans, .. } | Self::Paragraph { spans, .. } => {
-                spans.push(TextSpan { text: code, style: TextStyle { code: true, ..Default::default() } });
-            }
-            Self::List { current_item, .. } => {
-                current_item.push(TextSpan { text: code, style: TextStyle { code: true, ..Default::default() } });
-            }
-            Self::Table { current_cell, .. } => {
-                current_cell.push(TextSpan { text: code, style: TextStyle { code: true, ..Default::default() } });
-            }
-            Self::Admonition { .. } => {}
-            _ => {}
-        }
-    }
-
-    fn build(self) -> Block {
-        match self {
-            Self::Heading { level, spans } => Block::Heading { level, spans },
-            Self::Paragraph { spans } => Block::Paragraph { spans },
-            Self::Code { language, code } => Block::Code(CodeBlock { language, code }),
-            Self::List { ordered, items, .. } => Block::List(List { ordered, items }),
-            Self::BlockQuote { blocks } => Block::BlockQuote { blocks },
-            Self::Table { headers, rows, alignments, .. } => Block::Table(Table { headers, rows, alignments }),
-            Self::Admonition { admonition_type, title, blocks } => {
-                Block::Admonition(Admonition { admonition_type, title, blocks })
-            }
-            Self::Image { path, alt } => Block::Image { path, alt },
-        }
-    }
+    Ok(Slide { blocks, notes })
 }
 
 #[cfg(test)]
@@ -575,6 +632,27 @@ Content after code block
         assert!(slides[0].contains("Slide 1"));
         assert!(slides[0].contains("---"));
         assert!(slides[0].contains("Content after code block"));
+        assert!(slides[1].contains("Slide 2"));
+    }
+
+    #[test]
+    fn split_slides_ignores_separator_in_notes_block() {
+        let markdown = r#"# Slide 1
+
+::: notes
+These notes mention a separator:
+---
+:::
+
+Still slide 1
+
+---
+
+# Slide 2"#;
+        let slides = split_slides(markdown);
+        assert_eq!(slides.len(), 2);
+        assert!(slides[0].contains("Still slide 1"));
+        assert!(slides[0].contains("These notes mention a separator"));
         assert!(slides[1].contains("Slide 2"));
     }
 
@@ -725,6 +803,74 @@ Content after code block
         let markdown = "# Slide 1\nContent 1\n---\n# Slide 2\nContent 2";
         let slides = parse_slides(markdown).unwrap();
         assert_eq!(slides.len(), 2);
+    }
+
+    #[test]
+    fn parse_speaker_notes() {
+        let markdown = r#"# Slide
+
+Visible content
+
+::: notes
+Remind yourself to pause.
+
+Mention the demo.
+:::"#;
+        let slides = parse_slides(markdown).unwrap();
+
+        assert_eq!(slides.len(), 1);
+        assert_eq!(
+            slides[0].notes.as_deref(),
+            Some("Remind yourself to pause.\n\nMention the demo.")
+        );
+        assert_eq!(slides[0].blocks.len(), 2);
+
+        let visible_text = match &slides[0].blocks[1] {
+            Block::Paragraph { spans } => spans.iter().map(|span| span.text.as_str()).collect::<String>(),
+            _ => panic!("Expected visible paragraph"),
+        };
+        assert_eq!(visible_text, "Visible content");
+    }
+
+    #[test]
+    fn parse_multiple_speaker_note_blocks() {
+        let markdown = r#"# Slide
+
+:::notes
+First note.
+:::
+
+Content
+
+::: NOTES
+Second note.
+:::"#;
+        let slides = parse_slides(markdown).unwrap();
+
+        assert_eq!(slides[0].notes.as_deref(), Some("First note.\n\nSecond note."));
+        assert_eq!(slides[0].blocks.len(), 2);
+    }
+
+    #[test]
+    fn parse_speaker_notes_ignores_fenced_code() {
+        let markdown = r#"# Slide
+
+```markdown
+::: notes
+This appears only in the notes panel.
+:::
+```
+
+::: notes
+Actual note.
+:::"#;
+        let slides = parse_slides(markdown).unwrap();
+
+        assert_eq!(slides[0].notes.as_deref(), Some("Actual note."));
+        match &slides[0].blocks[1] {
+            Block::Code(code) => assert!(code.code.contains("This appears only in the notes panel.")),
+            _ => panic!("Expected code block"),
+        }
     }
 
     #[test]

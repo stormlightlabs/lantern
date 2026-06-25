@@ -9,6 +9,12 @@ author: Learn Markdown
 
 A quick reference for Markdown syntax
 
+::: notes
+Welcome everyone and set expectations: this deck is a quick tour of common Markdown patterns plus a few Lantern extensions.
+
+Press Shift+N during `lantern present examples/learn-markdown.md` to show or hide these speaker notes.
+:::
+
 ---
 
 ## Headings
@@ -414,6 +420,24 @@ Comments are useful for:
 - Leaving notes for yourself or collaborators
 - Temporarily hiding content
 - Adding metadata that shouldn't display
+
+---
+
+## Speaker Notes
+
+Lantern keeps presenter notes out of the main slide:
+
+```markdown
+::: notes
+This appears only in the notes panel.
+:::
+```
+
+Toggle notes while presenting with `Shift+N`.
+
+::: notes
+Speaker notes are a Lantern extension. They are parsed into `Slide.notes`, not rendered as visible slide content.
+:::
 
 ---
 

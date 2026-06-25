@@ -7,6 +7,12 @@ author: Learn Rust
 
 A quick tour through Rust fundamentals
 
+::: notes
+Frame this as a fast survey, not a complete Rust course. Encourage the audience to focus on ownership, borrowing, and pattern matching.
+
+Press Shift+N in presenter mode to toggle this notes panel.
+:::
+
 ---
 
 ## Comments
@@ -45,6 +51,10 @@ fn add2(x: i32, y: i32) -> i32 {
 - `i32` is a 32-bit signed integer
 - Last expression without `;` is the return value
 - Function parameters must have type annotations
+
+::: notes
+Pause on the missing semicolon in `x + y`; it is the simplest way to introduce expression-oriented Rust.
+:::
 
 ---
 

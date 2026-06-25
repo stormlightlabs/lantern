@@ -24,7 +24,7 @@ Tasks moved from [ROADMAP.md](ROADMAP.md).
 
 ## Presenter
 
-- [ ] **Finish Speaker Notes**: Parse `::: notes` blocks into `Slide.notes`; keep `Shift+N` as the notes-panel toggle.
+- [x] **Finish Speaker Notes**: Parse `::: notes` blocks into `Slide.notes`; keep `Shift+N` as the notes-panel toggle.
 - [ ] **Live Reload**: Watch the source file and reload slides without restarting the presenter.
 - [ ] **Search**: Implement `/` and `ctrl+f` search over slide text and titles; jump to the next match.
 - [ ] **Navigation Polish**: Add numeric jumps, `gg` for first slide, and `G` for last slide.

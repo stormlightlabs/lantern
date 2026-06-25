@@ -178,6 +178,7 @@ Theme selection is implemented.
 - Tables
 - Images
 - GitHub and Obsidian-style admonitions
+- Speaker notes with `::: notes` blocks
 
 ## Environment variables
 
@@ -193,8 +194,6 @@ If no author appears in front matter, lantern uses `USER` or `USERNAME`.
 
 - Search keys are reserved, but the search UI is not implemented yet.
 - `author`, `date`, and `paging` are parsed from front matter but not displayed in the presenter.
-- Speaker notes are represented in the internal slide model, but markdown parsing for `::: notes`
-  has not been implemented yet.
 - Custom theme files can be validated with `lantern check --theme`, but rendering still uses
   built-in themes.
 

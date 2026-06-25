@@ -1,6 +1,6 @@
 # lantern
 
-> A modern, fast terminal presentation tool built with Rust.
+A modern, fast terminal presentation tool built with Rust.
 
 <details>
 <summary>
@@ -55,7 +55,13 @@ A terminal presentation tool built with Rust
 - Base16 theming system
 - Syntax highlighting
 - Tables, images, and admonitions
+- Speaker notes with `::: notes`
 - Print to stdout
+
+::: notes
+These notes stay out of the main slide and appear in the presenter notes panel.
+Press Shift+N while presenting to toggle the panel.
+:::
 
 ---
 
@@ -89,11 +95,13 @@ lantern present presentation.md --theme catppuccin-mocha
 
 ### Navigation
 
-| Key           | Action         |
-| ------------- | -------------- |
-| `→`, `j`, `n` | Next slide     |
-| `←`, `k`, `p` | Previous slide |
-| `q`           | Quit           |
+| Key                    | Action             |
+| ---------------------- | ------------------ |
+| `→`, `j`, `Space`, `n` | Next slide         |
+| `←`, `k`, `p`          | Previous slide     |
+| `Shift+N`              | Toggle notes panel |
+| `?`                    | Toggle help line   |
+| `q`, `Ctrl+C`, `Esc`   | Quit               |
 
 ## Design Principles
 
