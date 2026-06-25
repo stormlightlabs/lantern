@@ -13,6 +13,7 @@ pub struct SlideLayout {
 }
 
 impl SlideLayout {
+    /// Create a layout with the notes panel initially shown or hidden.
     pub fn new(show_notes: bool) -> Self {
         Self { show_notes, show_help: false }
     }

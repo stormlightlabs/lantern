@@ -10,27 +10,34 @@ use std::path::Path;
 /// Validation result containing errors and warnings
 #[derive(Debug, Clone, Default)]
 pub struct ValidationResult {
+    /// Validation failures that should stop normal use.
     pub errors: Vec<String>,
+    /// Non-fatal validation findings.
     pub warnings: Vec<String>,
 }
 
 impl ValidationResult {
+    /// Create an empty validation result.
     pub fn new() -> Self {
         Self::default()
     }
 
+    /// Add a validation error.
     pub fn add_error(&mut self, error: String) {
         self.errors.push(error);
     }
 
+    /// Add a validation warning.
     pub fn add_warning(&mut self, warning: String) {
         self.warnings.push(warning);
     }
 
+    /// Return true when no errors were recorded.
     pub fn is_valid(&self) -> bool {
         self.errors.is_empty()
     }
 
+    /// Return true when errors or warnings were recorded.
     pub fn has_issues(&self) -> bool {
         !self.errors.is_empty() || !self.warnings.is_empty()
     }

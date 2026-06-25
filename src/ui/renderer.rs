@@ -14,7 +14,9 @@ use unicode_width::UnicodeWidthChar;
 
 /// Image information extracted from blocks
 pub struct ImageInfo {
+    /// Image path as written in the deck.
     pub path: String,
+    /// Alternative text from the markdown image.
     pub alt: String,
 }
 

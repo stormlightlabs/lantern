@@ -27,7 +27,9 @@ pub fn theme_set() -> &'static ThemeSet {
 /// A highlighted token with text and color
 #[derive(Debug, Clone)]
 pub struct HighlightedToken {
+    /// Source text for this highlighted token.
     pub text: String,
+    /// Theme color to apply while rendering the token.
     pub color: Color,
 }
 

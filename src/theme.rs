@@ -7,6 +7,8 @@ use std::{env, fs, io};
 use terminal_colorsaurus::{QueryOptions, ThemeMode, theme_mode};
 
 static CATPPUCCIN_LATTE: &str = include_str!("themes/catppuccin-latte.yml");
+static CATPPUCCIN_FRAPPE: &str = include_str!("themes/catppuccin-frappe.yml");
+static CATPPUCCIN_MACCHIATO: &str = include_str!("themes/catppuccin-macchiato.yml");
 static CATPPUCCIN_MOCHA: &str = include_str!("themes/catppuccin-mocha.yml");
 static GRUVBOX_MATERIAL_DARK: &str = include_str!("themes/gruvbox-material-dark-medium.yml");
 static GRUVBOX_MATERIAL_LIGHT: &str = include_str!("themes/gruvbox-material-light-medium.yml");
@@ -14,11 +16,16 @@ static NORD_LIGHT: &str = include_str!("themes/nord-light.yml");
 static NORD: &str = include_str!("themes/nord.yml");
 static OXOCARBON_DARK: &str = include_str!("themes/oxocarbon-dark.yml");
 static OXOCARBON_LIGHT: &str = include_str!("themes/oxocarbon-light.yml");
+static ROSE_PINE: &str = include_str!("themes/rose-pine.yml");
+static ROSE_PINE_DAWN: &str = include_str!("themes/rose-pine-dawn.yml");
+static ROSE_PINE_MOON: &str = include_str!("themes/rose-pine-moon.yml");
 static SOLARIZED_DARK: &str = include_str!("themes/solarized-dark.yml");
 static SOLARIZED_LIGHT: &str = include_str!("themes/solarized-light.yml");
 
 const BUILTIN_THEMES: &[(&str, &str)] = &[
     ("catppuccin-latte", CATPPUCCIN_LATTE),
+    ("catppuccin-frappe", CATPPUCCIN_FRAPPE),
+    ("catppuccin-macchiato", CATPPUCCIN_MACCHIATO),
     ("catppuccin-mocha", CATPPUCCIN_MOCHA),
     ("gruvbox-material-dark", GRUVBOX_MATERIAL_DARK),
     ("gruvbox-material-light", GRUVBOX_MATERIAL_LIGHT),
@@ -26,6 +33,9 @@ const BUILTIN_THEMES: &[(&str, &str)] = &[
     ("nord", NORD),
     ("oxocarbon-dark", OXOCARBON_DARK),
     ("oxocarbon-light", OXOCARBON_LIGHT),
+    ("rose-pine", ROSE_PINE),
+    ("rose-pine-dawn", ROSE_PINE_DAWN),
+    ("rose-pine-moon", ROSE_PINE_MOON),
     ("solarized-dark", SOLARIZED_DARK),
     ("solarized-light", SOLARIZED_LIGHT),
 ];
@@ -35,10 +45,15 @@ const BUILTIN_THEMES: &[(&str, &str)] = &[
 /// Defines a standard 16-color palette that can be mapped to semantic theme roles.
 #[derive(Debug, Clone, Deserialize)]
 pub struct Base16Scheme {
+    /// Theme system identifier, usually `base16`.
     pub system: String,
+    /// Human-readable theme name.
     pub name: String,
+    /// Theme author or maintainer.
     pub author: String,
+    /// Theme variant, usually `dark` or `light`.
     pub variant: String,
+    /// Base16 color palette.
     pub palette: Base16Palette,
 }
 
@@ -50,26 +65,42 @@ pub struct Base16Scheme {
 /// - base08-0F: Accent colors (red, orange, yellow, green, cyan, blue, magenta, brown)
 #[derive(Debug, Clone, Deserialize)]
 pub struct Base16Palette {
+    /// Default background.
     pub base00: String,
+    /// Lighter background.
     pub base01: String,
+    /// Selection background.
     pub base02: String,
+    /// Comments, invisibles, and line highlighting.
     pub base03: String,
+    /// Dark foreground.
     pub base04: String,
+    /// Default foreground.
     pub base05: String,
+    /// Light foreground.
     pub base06: String,
+    /// Light background.
     pub base07: String,
+    /// Red accent.
     pub base08: String,
+    /// Orange accent.
     pub base09: String,
+    /// Yellow accent.
     #[serde(rename = "base0A")]
     pub base0a: String,
+    /// Green accent.
     #[serde(rename = "base0B")]
     pub base0b: String,
+    /// Cyan accent.
     #[serde(rename = "base0C")]
     pub base0c: String,
+    /// Blue accent.
     #[serde(rename = "base0D")]
     pub base0d: String,
+    /// Magenta accent.
     #[serde(rename = "base0E")]
     pub base0e: String,
+    /// Brown accent.
     #[serde(rename = "base0F")]
     pub base0f: String,
 }
@@ -77,12 +108,16 @@ pub struct Base16Palette {
 /// RGB color value for use with both owo-colors and ratatui
 #[derive(Debug, Clone, Copy)]
 pub struct Color {
+    /// Red channel.
     pub r: u8,
+    /// Green channel.
     pub g: u8,
+    /// Blue channel.
     pub b: u8,
 }
 
 impl Color {
+    /// Create an RGB color from red, green, and blue channels.
     pub const fn new(r: u8, g: u8, b: u8) -> Self {
         Self { r, g, b }
     }
@@ -128,30 +163,55 @@ pub fn detect_is_dark() -> bool {
 /// Stores RGB colors that can be converted to both owo-colors Style (for terminal output) and ratatui Color (for TUI rendering).
 #[derive(Debug, Clone, Copy)]
 pub struct ThemeColors {
+    /// Heading foreground color.
     pub heading: Color,
+    /// Whether headings should render in bold.
     pub heading_bold: bool,
+    /// Body foreground color.
     pub body: Color,
+    /// General accent color.
     pub accent: Color,
+    /// Code foreground color.
     pub code: Color,
+    /// Dimmed text and subtle border color.
     pub dimmed: Color,
+    /// Fenced code border color.
     pub code_fence: Color,
+    /// Horizontal rule color.
     pub rule: Color,
+    /// List marker color.
     pub list_marker: Color,
+    /// Blockquote border color.
     pub blockquote_border: Color,
+    /// Table border color.
     pub table_border: Color,
+    /// Emphasis text color.
     pub emphasis: Color,
+    /// Strong text color.
     pub strong: Color,
+    /// Link text color.
     pub link: Color,
+    /// Inline code background color.
     pub inline_code_bg: Color,
+    /// UI border color.
     pub ui_border: Color,
+    /// UI title color.
     pub ui_title: Color,
+    /// UI text color.
     pub ui_text: Color,
+    /// UI background color.
     pub ui_background: Color,
+    /// Note admonition color.
     pub admonition_note: Color,
+    /// Tip admonition color.
     pub admonition_tip: Color,
+    /// Warning admonition color.
     pub admonition_warning: Color,
+    /// Danger admonition color.
     pub admonition_danger: Color,
+    /// Success admonition color.
     pub admonition_success: Color,
+    /// Info admonition color.
     pub admonition_info: Color,
 }
 
@@ -761,17 +821,8 @@ palette:
     #[test]
     fn theme_registry_available_themes() {
         let themes = ThemeRegistry::available_themes();
-        assert!(themes.contains(&"nord"));
-        assert!(themes.contains(&"nord-light"));
-        assert!(themes.contains(&"catppuccin-mocha"));
-        assert!(themes.contains(&"catppuccin-latte"));
-        assert!(themes.contains(&"gruvbox-material-dark"));
-        assert!(themes.contains(&"gruvbox-material-light"));
-        assert!(themes.contains(&"oxocarbon-dark"));
-        assert!(themes.contains(&"oxocarbon-light"));
-        assert!(themes.contains(&"solarized-dark"));
-        assert!(themes.contains(&"solarized-light"));
-        assert_eq!(themes.len(), 10);
+        let expected = BUILTIN_THEMES.iter().map(|(name, _)| *name).collect::<Vec<_>>();
+        assert_eq!(themes, expected);
     }
 
     #[test]

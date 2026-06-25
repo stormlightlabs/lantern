@@ -14,8 +14,11 @@ use super::{layout::SlideLayout, viewer::SlideViewer};
 
 /// Presentation content that can be swapped in while the app is running.
 pub struct PresentationUpdate {
+    /// Replacement slide deck.
     pub slides: Vec<Slide>,
+    /// Replacement theme colors.
     pub theme: ThemeColors,
+    /// Display name for the replacement theme.
     pub theme_name: String,
 }
 

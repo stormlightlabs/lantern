@@ -109,8 +109,8 @@ lantern present presentation.md --theme catppuccin-mocha
 All color use flows through typed wrappers using `owo-colors`. No ad-hoc ANSI escapes.
 
 **Themeable:**
-Built on the [Base16](https://github.com/chriskempson/base16) theming system with 10 prebuilt themes
-(Catppuccin, Nord, Gruvbox Material, Solarized, Oxocarbon).
+Built on the [Base16](https://github.com/chriskempson/base16) theming system with 15 prebuilt themes
+(Catppuccin, Nord, Gruvbox Material, Solarized, Oxocarbon, Rose Pine).
 
 Each theme defines 16 semantic colors mapped to content and UI elements.
 

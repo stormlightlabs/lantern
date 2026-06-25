@@ -91,7 +91,12 @@ pub enum InputEvent {
     Quit,
     /// Terminal was resized
     /// NOTE: Terminal resize is handled automatically by ratatui
-    Resize { width: u16, height: u16 },
+    Resize {
+        /// New terminal width in columns.
+        width: u16,
+        /// New terminal height in rows.
+        height: u16,
+    },
     /// Unknown/unhandled event
     Other,
 }

@@ -10,6 +10,8 @@ syntax highlighting, admonitions, and UI chrome.
 Built-in theme names:
 
 - `catppuccin-latte`
+- `catppuccin-frappe`
+- `catppuccin-macchiato`
 - `catppuccin-mocha`
 - `gruvbox-material-dark`
 - `gruvbox-material-light`
@@ -17,6 +19,9 @@ Built-in theme names:
 - `nord-light`
 - `oxocarbon-dark`
 - `oxocarbon-light`
+- `rose-pine`
+- `rose-pine-dawn`
+- `rose-pine-moon`
 - `solarized-dark`
 - `solarized-light`
 

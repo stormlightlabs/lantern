@@ -39,6 +39,9 @@ unicode-width = "0.2"
 tracing = "0.1.41"
 tracing-subscriber = "0.3.20"
 
+[lints.rust]
+missing_docs = "deny"
+
 [lints.clippy]
 bool_comparison = "deny"
 duplicate_mod = "deny"
