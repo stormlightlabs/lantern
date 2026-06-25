@@ -1,3 +1,4 @@
+#![allow(dead_code)]
 use image::DynamicImage;
 use ratatui_image::{picker::Picker, protocol::StatefulProtocol};
 use std::collections::HashMap;
@@ -43,11 +44,6 @@ impl ImageManager {
     /// Check if an image is already loaded
     pub fn has_image(&self, path: &str) -> bool {
         self.protocols.contains_key(path)
-    }
-
-    /// Get a mutable reference to a loaded image protocol
-    pub fn get_protocol_mut(&mut self, path: &str) -> Option<&mut StatefulProtocol> {
-        self.protocols.get_mut(path)
     }
 
     /// Resolve a path relative to the base path if set

@@ -2,7 +2,6 @@
 use clap::{Parser, Subcommand};
 use lantern_core::validator::{validate_slides, validate_theme_file};
 use lantern_core::{parser::parse_slides_with_meta, term::Terminal as SlideTerminal, theme::ThemeRegistry};
-use lantern_ui::App;
 use owo_colors::OwoColorize;
 use ratatui::{Terminal, backend::CrosstermBackend};
 use std::{
@@ -10,6 +9,9 @@ use std::{
     path::{Path, PathBuf},
 };
 use tracing::Level;
+use ui::App;
+
+mod ui;
 
 /// A modern terminal-based presentation tool
 #[derive(Parser, Debug)]

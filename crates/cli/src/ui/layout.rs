@@ -1,3 +1,4 @@
+#![allow(dead_code)]
 use ratatui::layout::{Constraint, Direction, Layout, Margin, Rect};
 
 /// Layout manager for slide presentation
@@ -15,10 +16,7 @@ impl SlideLayout {
     }
 
     /// Panel margin (horizontal, vertical) around bordered panels
-    const PANEL_MARGIN: Margin = Margin {
-        horizontal: 2,
-        vertical: 1,
-    };
+    const PANEL_MARGIN: Margin = Margin { horizontal: 2, vertical: 1 };
 
     /// Calculate layout areas for the slide viewer
     ///
@@ -80,7 +78,6 @@ impl SlideLayout {
         self.show_help
     }
 }
-
 
 #[cfg(test)]
 mod tests {

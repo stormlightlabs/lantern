@@ -8,7 +8,7 @@ use ratatui::{
 use std::io;
 use std::time::{Duration, Instant};
 
-use crate::{layout::SlideLayout, viewer::SlideViewer};
+use super::{layout::SlideLayout, viewer::SlideViewer};
 
 /// Main TUI application coordinator
 ///

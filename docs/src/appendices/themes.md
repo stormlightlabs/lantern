@@ -109,8 +109,7 @@ Lantern can validate a Base16 YAML file:
 lantern check --theme theme.yml
 ```
 
-The current CLI can validate custom theme files, but it cannot load them for rendering yet.
-Theme loading from a path is planned but not implemented.
+Custom theme files can be validated, but rendering still uses built-in themes.
 
 A valid theme uses this shape:
 

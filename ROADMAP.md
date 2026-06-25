@@ -18,6 +18,8 @@ Tasks: see [todo.md](todo.md#rendering--navigation).
 - Unicode Headings: Unicode constants.
 - Configurable Themes: `serde_yml`, `serde`; user theme loading uses `dirs`.
 
+### Themes
+
 ## Code Highlighting via Syntect
 
 **Objective:** Add first-class syntax highlighting using Syntect.

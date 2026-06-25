@@ -1,3 +1,4 @@
+#![allow(dead_code)]
 use lantern_core::{slide::Slide, theme::ThemeColors};
 use ratatui::{
     Frame,
@@ -9,8 +10,8 @@ use ratatui::{
 use ratatui_image::{Resize, StatefulImage};
 use std::time::Instant;
 
-use crate::image::ImageManager;
-use crate::renderer::render_slide_with_images;
+use super::image::ImageManager;
+use super::renderer::render_slide_with_images;
 
 #[derive(Clone, Copy)]
 struct Stylesheet {

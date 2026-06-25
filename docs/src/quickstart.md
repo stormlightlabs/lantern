@@ -122,8 +122,6 @@ lantern check --theme theme.yml
 | `Shift+N`              | Toggle notes panel if a slide contains notes |
 | `q`, `Ctrl+C`, `Esc`   | Quit                                         |
 
-The input layer reserves `/` and `Ctrl+F` for search, but the search UI is not implemented yet.
-
 ## Slide separators
 
 Put three dashes on a line by themselves between slides:
@@ -168,9 +166,6 @@ Current metadata fields are `theme`, `author`, `date`, and `paging`.
 
 Theme selection is implemented.
 
-The UI currently uses a fixed status-bar format, so `author`, `date`, and `paging` are parsed but
-not displayed in the presenter.
-
 ## Supported markdown
 
 - Headings `#` through `######`
@@ -184,9 +179,6 @@ not displayed in the presenter.
 - Images
 - GitHub and Obsidian-style admonitions
 
-Speaker notes are represented in the internal slide model and can be toggled in the UI, but
-markdown parsing for `::: notes` has not been implemented yet.
-
 ## Environment variables
 
 Set the default theme with `SLIDES_THEME`:
@@ -196,6 +188,15 @@ export SLIDES_THEME=nord
 ```
 
 If no author appears in front matter, lantern uses `USER` or `USERNAME`.
+
+## Current limitations
+
+- Search keys are reserved, but the search UI is not implemented yet.
+- `author`, `date`, and `paging` are parsed from front matter but not displayed in the presenter.
+- Speaker notes are represented in the internal slide model, but markdown parsing for `::: notes`
+  has not been implemented yet.
+- Custom theme files can be validated with `lantern check --theme`, but rendering still uses
+  built-in themes.
 
 ## More reference
 

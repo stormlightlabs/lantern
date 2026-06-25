@@ -1,3 +1,4 @@
+#![allow(dead_code)]
 use lantern_core::{
     highlighter,
     slide::{Block, CodeBlock, List, Table, TextSpan, TextStyle},

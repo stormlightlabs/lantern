@@ -2,16 +2,24 @@
 name = "lantern-cli"
 version = "0.1.0"
 edition = "2024"
+description = "A modern terminal presentation tool for Markdown decks"
+license = "MIT"
+repository = "https://github.com/stormlightlabs/lantern"
+readme = "../../README.md"
+keywords = ["markdown", "slides", "presentations", "terminal", "tui"]
+categories = ["command-line-utilities"]
 
 [dependencies]
 clap = { version = "4.5.48", features = ["derive"] }
 crossterm = "0.29.0"
+image = "0.25"
 owo-colors = "4.2.3"
 ratatui = "0.29.0"
+ratatui-image = "8.0.2"
 tracing = "0.1.41"
 tracing-subscriber = "0.3.20"
-lantern-core = { path = "../core" }
-lantern-ui = { path = "../ui" }
+lantern-core = { version = "0.1.0", path = "../core" }
+unicode-width = "0.2"
 
 [[bin]]
 name = "lantern"

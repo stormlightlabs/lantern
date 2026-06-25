@@ -4,11 +4,10 @@ Lantern is a terminal presentation tool for markdown decks. It focuses on fast r
 defaults, and plain-text decks that still look good in a terminal.
 
 The current implementation supports interactive presenting, formatted printing, theme selection,
-syntax-highlighted code, tables, images, and admonitions. The code is split into three crates:
+syntax-highlighted code, tables, images, and admonitions. The code is split into two crates:
 
 - `lantern-core` parses markdown, metadata, themes, highlighting, printing, and validation.
-- `lantern-ui` renders the interactive terminal UI with ratatui.
-- `lantern-cli` exposes the `lantern` command.
+- `lantern-cli` exposes the `lantern` command and renders the interactive terminal UI with ratatui.
 
 Lantern is still early.
 
