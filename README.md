@@ -20,7 +20,7 @@ Now with image support (if your terminal supports it!)
 From a local clone:
 
 ```bash
-cargo install --path crates/cli
+cargo install --path .
 ```
 
 From GitHub:

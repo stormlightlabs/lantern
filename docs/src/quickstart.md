@@ -7,13 +7,13 @@ From a local clone:
 ```bash
 git clone https://github.com/stormlightlabs/lantern.git
 cd lantern
-cargo install --path crates/cli
+cargo install --path .
 ```
 
 You can also run it without installing:
 
 ```bash
-cargo run -p lantern-cli -- present presentation.md
+cargo run -- present presentation.md
 ```
 
 The installed binary is named `lantern`.
