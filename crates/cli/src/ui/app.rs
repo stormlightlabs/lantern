@@ -1,4 +1,4 @@
-use lantern_core::{metadata::Meta, slide::Slide, term::InputEvent, theme::ThemeColors};
+use crate::{metadata::Meta, slide::Slide, term::InputEvent, theme::ThemeColors};
 use ratatui::{
     Terminal as RatatuiTerminal,
     backend::Backend,
@@ -104,7 +104,7 @@ impl App {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use lantern_core::slide::{Block, TextSpan};
+    use crate::slide::{Block, TextSpan};
 
     fn create_test_app() -> App {
         let slides = vec![

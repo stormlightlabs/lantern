@@ -836,22 +836,10 @@ dependencies = [
  "clap",
  "crossterm 0.29.0",
  "image",
- "lantern-core",
- "owo-colors",
- "ratatui",
- "ratatui-image",
- "tracing",
- "tracing-subscriber",
- "unicode-width 0.2.0",
-]
-
-[[package]]
-name = "lantern-core"
-version = "0.1.0"
-dependencies = [
- "crossterm 0.29.0",
  "owo-colors",
  "pulldown-cmark",
+ "ratatui",
+ "ratatui-image",
  "serde",
  "serde_json",
  "serde_yml",
@@ -860,6 +848,7 @@ dependencies = [
  "thiserror 2.0.17",
  "toml",
  "tracing",
+ "tracing-subscriber",
  "unicode-width 0.2.0",
 ]
 

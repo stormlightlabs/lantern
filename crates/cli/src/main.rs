@@ -1,7 +1,7 @@
 /// TODO: Add --no-bg flag to present command to allow users to disable background color
 use clap::{Parser, Subcommand};
-use lantern_core::validator::{validate_slides, validate_theme_file};
-use lantern_core::{parser::parse_slides_with_meta, term::Terminal as SlideTerminal, theme::ThemeRegistry};
+use lantern_cli::validator::{validate_slides, validate_theme_file};
+use lantern_cli::{parser::parse_slides_with_meta, term::Terminal as SlideTerminal, theme::ThemeRegistry, ui::App};
 use owo_colors::OwoColorize;
 use ratatui::{Terminal, backend::CrosstermBackend};
 use std::{
@@ -9,9 +9,6 @@ use std::{
     path::{Path, PathBuf},
 };
 use tracing::Level;
-use ui::App;
-
-mod ui;
 
 /// A modern terminal-based presentation tool
 #[derive(Parser, Debug)]
@@ -243,7 +240,7 @@ fn run_print(file: &PathBuf, width: usize, theme_arg: Option<String>) -> io::Res
 
     let theme = ThemeRegistry::get(&theme_name);
 
-    lantern_core::printer::print_slides_to_stdout(&slides, &theme, width)?;
+    lantern_cli::printer::print_slides_to_stdout(&slides, &theme, width)?;
 
     Ok(())
 }

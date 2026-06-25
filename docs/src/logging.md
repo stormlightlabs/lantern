@@ -56,5 +56,5 @@ Logs are written in plain text format without ANSI color codes, making them easy
 ```sh
 2025-11-18T10:30:45.123Z INFO lantern_cli: Presenting slides from: slides.md
 2025-11-18T10:30:45.234Z INFO lantern_cli: Theme selection: CLI arg=None, frontmatter=oxocarbon-dark, final=oxocarbon-dark
-2025-11-18T10:30:45.345Z DEBUG lantern_core::parser: Parsed 15 slides from markdown
+2025-11-18T10:30:45.345Z DEBUG lantern_cli::parser: Parsed 15 slides from markdown
 ```

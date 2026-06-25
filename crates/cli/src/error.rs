@@ -30,10 +30,7 @@ pub type Result<T> = std::result::Result<T, SlideError>;
 
 impl SlideError {
     pub fn parse_error(line: usize, message: impl Into<String>) -> Self {
-        Self::ParseError {
-            line,
-            message: message.into(),
-        }
+        Self::ParseError { line, message: message.into() }
     }
 
     pub fn invalid_format(message: impl Into<String>) -> Self {

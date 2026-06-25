@@ -1,5 +1,5 @@
 #![allow(dead_code)]
-use lantern_core::{slide::Slide, theme::ThemeColors};
+use crate::{slide::Slide, theme::ThemeColors};
 use ratatui::{
     Frame,
     layout::{Alignment, Constraint, Direction, Flex, Layout, Rect},
@@ -378,7 +378,7 @@ impl SlideViewer {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use lantern_core::slide::{Block, TextSpan};
+    use crate::slide::{Block, TextSpan};
 
     fn create_test_slides() -> Vec<Slide> {
         vec![

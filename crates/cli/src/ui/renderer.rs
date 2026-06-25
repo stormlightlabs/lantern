@@ -1,5 +1,5 @@
 #![allow(dead_code)]
-use lantern_core::{
+use crate::{
     highlighter,
     slide::{Block, CodeBlock, List, Table, TextSpan, TextStyle},
     theme::ThemeColors,
@@ -178,10 +178,8 @@ fn render_blockquote(blocks: &[Block], theme: &ThemeColors, lines: &mut Vec<Line
 }
 
 /// Render an admonition with colored border and icon
-fn render_admonition(
-    admonition: &lantern_core::slide::Admonition, theme: &ThemeColors, lines: &mut Vec<Line<'static>>,
-) {
-    use lantern_core::slide::AdmonitionType;
+fn render_admonition(admonition: &crate::slide::Admonition, theme: &ThemeColors, lines: &mut Vec<Line<'static>>) {
+    use crate::slide::AdmonitionType;
 
     let (icon, color, default_title) = match admonition.admonition_type {
         AdmonitionType::Note => ("\u{24D8}", &theme.admonition_note, "Note"),
@@ -331,7 +329,7 @@ fn apply_theme_style(theme: &ThemeColors, text_style: &TextStyle, is_heading: bo
 }
 
 /// Convert theme Color to ratatui Style with RGB colors
-fn to_ratatui_style(color: &lantern_core::theme::Color, bold: bool) -> Style {
+fn to_ratatui_style(color: &crate::theme::Color, bold: bool) -> Style {
     let mut style = Style::default().fg(ratatui::style::Color::Rgb(color.r, color.g, color.b));
 
     if bold {
@@ -345,8 +343,8 @@ fn to_ratatui_style(color: &lantern_core::theme::Color, bold: bool) -> Style {
 mod tests {
     use super::*;
 
-    use lantern_core::slide::ListItem;
-    use lantern_core::theme::Color;
+    use crate::slide::ListItem;
+    use crate::theme::Color;
 
     #[test]
     fn render_heading_basic() {
@@ -456,8 +454,7 @@ mod tests {
 
     #[test]
     fn render_slide_with_images_extracts_image() {
-        let blocks =
-            vec![lantern_core::slide::Block::Image { path: "test.png".to_string(), alt: "Test Image".to_string() }];
+        let blocks = vec![crate::slide::Block::Image { path: "test.png".to_string(), alt: "Test Image".to_string() }];
         let theme = ThemeColors::default();
         let (_text, images) = render_slide_with_images(&blocks, &theme);
 
@@ -469,8 +466,8 @@ mod tests {
     #[test]
     fn render_slide_with_images_extracts_multiple() {
         let blocks = vec![
-            lantern_core::slide::Block::Image { path: "image1.png".to_string(), alt: "First".to_string() },
-            lantern_core::slide::Block::Image { path: "image2.png".to_string(), alt: "Second".to_string() },
+            crate::slide::Block::Image { path: "image1.png".to_string(), alt: "First".to_string() },
+            crate::slide::Block::Image { path: "image2.png".to_string(), alt: "Second".to_string() },
         ];
         let theme = ThemeColors::default();
         let (_text, images) = render_slide_with_images(&blocks, &theme);
@@ -485,9 +482,9 @@ mod tests {
     #[test]
     fn render_slide_with_mixed_content() {
         let blocks = vec![
-            lantern_core::slide::Block::Heading { level: 1, spans: vec![TextSpan::plain("Title")] },
-            lantern_core::slide::Block::Image { path: "diagram.png".to_string(), alt: "Diagram".to_string() },
-            lantern_core::slide::Block::Paragraph { spans: vec![TextSpan::plain("Description")] },
+            crate::slide::Block::Heading { level: 1, spans: vec![TextSpan::plain("Title")] },
+            crate::slide::Block::Image { path: "diagram.png".to_string(), alt: "Diagram".to_string() },
+            crate::slide::Block::Paragraph { spans: vec![TextSpan::plain("Description")] },
         ];
         let theme = ThemeColors::default();
         let (text, images) = render_slide_with_images(&blocks, &theme);
