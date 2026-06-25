@@ -1,3 +1,5 @@
+//! Front matter extraction and slide deck metadata defaults.
+
 use crate::error::{Result, SlideError};
 use serde::{Deserialize, Serialize};
 use std::env;
@@ -39,7 +41,7 @@ impl Meta {
         }
 
         match format {
-            FrontmatterFormat::Yaml => match serde_yml::from_str(header) {
+            FrontmatterFormat::Yaml => match yaml_serde::from_str(header) {
                 Ok(meta) => Ok(meta),
                 Err(e) => Err(SlideError::front_matter(format!("Failed to parse YAML: {e}"))),
             },

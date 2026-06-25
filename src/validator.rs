@@ -1,3 +1,5 @@
+//! Validation routines for slide decks and Base16 theme files.
+
 use crate::error::{Result, SlideError};
 use crate::metadata::Meta;
 use crate::parser::parse_slides_with_meta;
@@ -116,7 +118,7 @@ pub fn validate_theme_file(file_path: &Path) -> ValidationResult {
         }
     };
 
-    let scheme: Base16Scheme = match serde_yml::from_str(&yaml_content) {
+    let scheme: Base16Scheme = match yaml_serde::from_str(&yaml_content) {
         Ok(s) => s,
         Err(e) => {
             result.add_error(format!("Failed to parse YAML: {e}"));

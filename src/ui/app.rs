@@ -1,3 +1,5 @@
+//! Application event loop and top-level TUI coordination.
+
 use crate::{metadata::Meta, slide::Slide, term::InputEvent, theme::ThemeColors};
 use ratatui::{
     Terminal as RatatuiTerminal,

@@ -1,3 +1,5 @@
+//! Command-line entry point for the `lantern` binary.
+
 /// TODO: Add --no-bg flag to present command to allow users to disable background color
 use clap::{Parser, Subcommand};
 use lantern_cli::validator::{validate_slides, validate_theme_file};

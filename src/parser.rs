@@ -1,3 +1,5 @@
+//! Markdown parser that turns deck source into lantern slide blocks.
+
 use crate::error::Result;
 use crate::metadata::Meta;
 use crate::slide::*;

@@ -1,3 +1,5 @@
+//! Syntax highlighting support for fenced code blocks.
+
 use std::sync::OnceLock;
 use syntect::easy::HighlightLines;
 use syntect::highlighting::{Theme, ThemeSet};

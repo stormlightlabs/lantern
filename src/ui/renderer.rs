@@ -1,3 +1,5 @@
+//! Conversion from slide blocks into styled ratatui text and image metadata.
+
 #![allow(dead_code)]
 use crate::{
     highlighter,

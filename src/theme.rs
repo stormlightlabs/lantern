@@ -1,3 +1,5 @@
+//! Base16 theme loading and semantic color mapping.
+
 use owo_colors::{OwoColorize, Style};
 use serde::Deserialize;
 use terminal_colorsaurus::{QueryOptions, ThemeMode, theme_mode};
@@ -351,11 +353,11 @@ impl ThemeRegistry {
             _ => NORD,
         };
 
-        serde_yml::from_str::<Base16Scheme>(yaml)
+        yaml_serde::from_str::<Base16Scheme>(yaml)
             .ok()
             .and_then(|scheme| ThemeColors::from_base16(&scheme))
             .unwrap_or_else(|| {
-                serde_yml::from_str::<Base16Scheme>(NORD)
+                yaml_serde::from_str::<Base16Scheme>(NORD)
                     .ok()
                     .and_then(|scheme| ThemeColors::from_base16(&scheme))
                     .expect("Failed to parse fallback Nord theme")
@@ -464,7 +466,7 @@ palette:
   base0E: "#eeeeee"
   base0F: "#ffffff"
 "##;
-        let scheme: Result<Base16Scheme, _> = serde_yml::from_str(yaml);
+        let scheme: Result<Base16Scheme, _> = yaml_serde::from_str(yaml);
         assert!(scheme.is_ok());
     }
 
@@ -493,7 +495,7 @@ palette:
   base0E: "#ff00ff"
   base0F: "#ffffff"
 "##;
-        let scheme: Base16Scheme = serde_yml::from_str(yaml).unwrap();
+        let scheme: Base16Scheme = yaml_serde::from_str(yaml).unwrap();
         let theme = ThemeColors::from_base16(&scheme);
         assert!(theme.is_some());
 

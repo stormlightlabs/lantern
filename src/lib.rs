@@ -1,3 +1,5 @@
+//! Library for parsing, validating, printing, and presenting lantern Markdown decks.
+
 pub mod error;
 pub mod highlighter;
 pub mod metadata;

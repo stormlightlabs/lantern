@@ -1,3 +1,5 @@
+//! Slide data model used by the parser, printer, validator, and TUI.
+
 use std::str::FromStr;
 
 use serde::{Deserialize, Serialize};

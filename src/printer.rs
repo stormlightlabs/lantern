@@ -1,3 +1,5 @@
+//! ANSI terminal printer for rendering parsed slides outside the TUI.
+
 use crate::highlighter;
 use crate::slide::{Block, CodeBlock, List, Table, TextSpan, TextStyle};
 use crate::theme::ThemeColors;

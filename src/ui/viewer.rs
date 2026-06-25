@@ -1,3 +1,5 @@
+//! Slide viewer state, navigation, status bar, and rendering helpers.
+
 #![allow(dead_code)]
 use crate::{slide::Slide, theme::ThemeColors};
 use ratatui::{

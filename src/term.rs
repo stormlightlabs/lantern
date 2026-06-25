@@ -1,3 +1,5 @@
+//! Terminal setup, teardown, and input event translation.
+
 use crossterm::event::{self, Event, KeyCode, KeyEvent, KeyModifiers};
 use std::{io, time::Duration};
 

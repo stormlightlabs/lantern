@@ -1,3 +1,5 @@
+//! Error types shared by parsing, validation, theme loading, and rendering helpers.
+
 use std::io;
 use thiserror::Error;
 
@@ -17,7 +19,7 @@ pub enum SlideError {
     FrontMatterError(String),
 
     #[error("YAML parsing failed: {0}")]
-    YamlError(#[from] serde_yml::Error),
+    YamlError(#[from] yaml_serde::Error),
 
     #[error("JSON parsing failed: {0}")]
     JsonError(#[from] serde_json::Error),

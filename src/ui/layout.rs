@@ -1,3 +1,5 @@
+//! Responsive layout calculation for slide, notes, status, and help areas.
+
 #![allow(dead_code)]
 use ratatui::layout::{Constraint, Direction, Layout, Margin, Rect};
 
